@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.linkwisehub.modules.ai.knowledge.mapper.AiKnowledgeCategoryMapper">
+    <resultMap id="AiKnowledgeCategoryResultMap" type="com.linkwisehub.modules.ai.knowledge.entity.AiKnowledgeCategory">
+        <id property="id" column="id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="name" column="name"/>
+        <result property="sort" column="sort"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectAll" resultMap="AiKnowledgeCategoryResultMap">
+        SELECT *
+        FROM lwh_ai_knowledge_category
+        WHERE status = 1
+        ORDER BY parent_id ASC, sort ASC, id ASC
+    </select>
+
+    <select id="selectById" resultMap="AiKnowledgeCategoryResultMap">
+        SELECT *
+        FROM lwh_ai_knowledge_category
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectRootByName" resultMap="AiKnowledgeCategoryResultMap">
+        SELECT *
+        FROM lwh_ai_knowledge_category
+        WHERE parent_id = 0
+          AND name = #{name}
+          AND status = 1
+        ORDER BY id ASC
+        LIMIT 1
+    </select>
+
+    <select id="countByParentId" resultType="int">
+        SELECT COUNT(1)
+        FROM lwh_ai_knowledge_category
+        WHERE parent_id = #{parentId}
+          AND status = 1
+    </select>
+
+    <insert id="insert" parameterType="com.linkwisehub.modules.ai.knowledge.entity.AiKnowledgeCategory" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO lwh_ai_knowledge_category (parent_id, name, sort, status)
+        VALUES (#{parentId}, #{name}, #{sort}, #{status})
+    </insert>
+
+    <update id="update" parameterType="com.linkwisehub.modules.ai.knowledge.entity.AiKnowledgeCategory">
+        UPDATE lwh_ai_knowledge_category
+        SET parent_id = #{parentId},
+            name = #{name},
+            sort = #{sort}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE lwh_ai_knowledge_category
+        SET status = #{status}
+        WHERE id = #{id}
+    </update>
+</mapper>

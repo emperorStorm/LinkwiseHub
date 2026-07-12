@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.linkwisehub.modules.ai.document.mapper.AiDocumentChunkMapper">
+    <resultMap id="AiDocumentChunkRespResultMap" type="com.linkwisehub.modules.ai.document.dto.AiDocumentChunkRespDto">
+        <id property="id" column="id"/>
+        <result property="documentId" column="document_id"/>
+        <result property="chunkIndex" column="chunk_index"/>
+        <result property="documentName" column="document_name"/>
+        <result property="content" column="content"/>
+        <result property="contentLength" column="content_length"/>
+        <result property="sourceTitle" column="source_title"/>
+        <result property="sourcePage" column="source_page"/>
+        <result property="sourceParagraph" column="source_paragraph"/>
+        <result property="metadataJson" column="metadata_json"/>
+        <result property="vectorId" column="vector_id"/>
+        <result property="vectorStatus" column="vector_status"/>
+        <result property="vectorErrorMessage" column="vector_error_message"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <resultMap id="AiDocumentChunkIndexResultMap" type="com.linkwisehub.modules.ai.document.dto.AiDocumentChunkIndexDto">
+        <id property="chunkId" column="chunk_id"/>
+        <result property="documentId" column="document_id"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="chunkIndex" column="chunk_index"/>
+        <result property="title" column="title"/>
+        <result property="fileName" column="file_name"/>
+        <result property="content" column="content"/>
+        <result property="sourceTitle" column="source_title"/>
+        <result property="sourceType" column="source_type"/>
+        <result property="vectorId" column="vector_id"/>
+        <result property="publishStatus" column="publish_status"/>
+        <result property="documentStatus" column="document_status"/>
+        <result property="chunkStatus" column="chunk_status"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectByDocumentId" resultMap="AiDocumentChunkRespResultMap">
+        SELECT c.id,
+               c.document_id,
+               c.chunk_index,
+               d.file_name AS document_name,
+               c.content,
+               c.content_length,
+               c.source_title,
+               c.source_page,
+               c.source_paragraph,
+               c.metadata_json,
+               c.vector_id,
+               c.vector_status,
+               c.vector_error_message,
+               c.create_time
+        FROM lwh_ai_document_chunk c
+        INNER JOIN lwh_ai_document d ON d.id = c.document_id
+        WHERE c.document_id = #{documentId}
+          AND c.status = 1
+          AND d.status = 1
+        ORDER BY c.chunk_index ASC
+    </select>
+
+    <select id="selectVectorIdsByDocumentId" resultType="string">
+        SELECT vector_id
+        FROM lwh_ai_document_chunk
+        WHERE document_id = #{documentId}
+          AND vector_id IS NOT NULL
+          AND vector_id != ''
+    </select>
+
+    <select id="selectPublishedByVectorIds" resultMap="AiDocumentChunkRespResultMap">
+        SELECT c.id,
+               c.document_id,
+               c.chunk_index,
+               d.file_name AS document_name,
+               c.content,
+               c.content_length,
+               c.source_title,
+               c.source_page,
+               c.source_paragraph,
+               c.metadata_json,
+               c.vector_id,
+               c.vector_status,
+               c.vector_error_message,
+               c.create_time
+        FROM lwh_ai_document_chunk c
+        INNER JOIN lwh_ai_document d ON d.id = c.document_id
+        WHERE c.status = 1
+          AND d.status = 1
+          AND d.publish_status = 'PUBLISHED'
+          AND c.vector_id IN
+          <foreach collection="vectorIds" item="vectorId" open="(" separator="," close=")">
+              #{vectorId}
+          </foreach>
+    </select>
+
+    <select id="selectPublishedByChunkIds" resultMap="AiDocumentChunkRespResultMap">
+        SELECT c.id,
+               c.document_id,
+               c.chunk_index,
+               d.file_name AS document_name,
+               c.content,
+               c.content_length,
+               c.source_title,
+               c.source_page,
+               c.source_paragraph,
+               c.metadata_json,
+               c.vector_id,
+               c.vector_status,
+               c.vector_error_message,
+               c.create_time
+        FROM lwh_ai_document_chunk c
+        INNER JOIN lwh_ai_document d ON d.id = c.document_id
+        WHERE c.status = 1
+          AND d.status = 1
+          AND d.publish_status = 'PUBLISHED'
+          AND c.id IN
+          <foreach collection="chunkIds" item="chunkId" open="(" separator="," close=")">
+              #{chunkId}
+          </foreach>
+    </select>
+
+    <select id="selectIndexChunksByDocumentId" resultMap="AiDocumentChunkIndexResultMap">
+        SELECT c.id AS chunk_id,
+               c.document_id,
+               d.category_id,
+               c.chunk_index,
+               d.title,
+               d.file_name,
+               c.content,
+               c.source_title,
+               d.source_type,
+               c.vector_id,
+               d.publish_status,
+               d.status AS document_status,
+               c.status AS chunk_status,
+               d.update_time
+        FROM lwh_ai_document_chunk c
+        INNER JOIN lwh_ai_document d ON d.id = c.document_id
+        WHERE c.document_id = #{documentId}
+          AND c.status = 1
+          AND d.status = 1
+        ORDER BY c.chunk_index ASC
+    </select>
+
+    <select id="selectIndexChunksPage" resultMap="AiDocumentChunkIndexResultMap">
+        SELECT c.id AS chunk_id,
+               c.document_id,
+               d.category_id,
+               c.chunk_index,
+               d.title,
+               d.file_name,
+               c.content,
+               c.source_title,
+               d.source_type,
+               c.vector_id,
+               d.publish_status,
+               d.status AS document_status,
+               c.status AS chunk_status,
+               d.update_time
+        FROM lwh_ai_document_chunk c
+        INNER JOIN lwh_ai_document d ON d.id = c.document_id
+        WHERE c.status = 1
+          AND d.status = 1
+        ORDER BY c.id ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <insert id="batchInsert">
+        INSERT INTO lwh_ai_document_chunk
+        (document_id, chunk_index, content, content_length, source_title, source_page, source_paragraph,
+         metadata_json, vector_id, vector_status, vector_error_message, status)
+        VALUES
+        <foreach collection="chunks" item="chunk" separator=",">
+            (#{chunk.documentId}, #{chunk.chunkIndex}, #{chunk.content}, #{chunk.contentLength}, #{chunk.sourceTitle},
+             #{chunk.sourcePage}, #{chunk.sourceParagraph}, #{chunk.metadataJson}, #{chunk.vectorId}, #{chunk.vectorStatus},
+             #{chunk.vectorErrorMessage}, #{chunk.status})
+        </foreach>
+    </insert>
+
+    <update id="updateVectorIdByChunkId">
+        UPDATE lwh_ai_document_chunk
+        SET vector_id = #{vectorId},
+            vector_status = 'SUCCESS',
+            vector_error_message = NULL
+        WHERE id = #{chunkId}
+          AND status = 1
+    </update>
+
+    <update id="updateStatusByDocumentId">
+        UPDATE lwh_ai_document_chunk
+        SET status = #{status},
+            vector_id = CASE WHEN #{status} = 0 AND status != 0 THEN NULL ELSE vector_id END,
+            chunk_index = CASE WHEN #{status} = 0 AND status != 0 THEN -id ELSE chunk_index END
+        WHERE document_id = #{documentId}
+    </update>
+</mapper>

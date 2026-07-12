@@ -1,0 +1,174 @@
+spring:
+  datasource:
+    url: jdbc:mysql://10.211.55.6:3306/lwh_system?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: admin
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  redis:
+    host: 10.211.55.6
+    port: 6379
+    password: 123456
+    database: 0
+    timeout: 3000
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  security:
+    user:
+      name: admin
+      password: 123456
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+  sql:
+    init:
+      mode: always
+      continue-on-error: true
+      schema-locations:
+        - classpath:sql/schema.sql
+        - classpath:sql/rag_qdrant_migration.sql
+      data-locations:
+        - classpath:sql/data.sql
+  # Spring AI RAG 配置，用于文档分片后的本地向量化和 Qdrant 入库。
+  ai:
+    model:
+      embedding: ollama
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://127.0.0.1:11434}
+      init:
+        pull-model-strategy: never
+      embedding:
+        options:
+          model: ${OLLAMA_EMBEDDING_MODEL:bge-m3}
+    vectorstore:
+      qdrant:
+        host: ${QDRANT_HOST:10.211.55.6}
+        port: ${QDRANT_GRPC_PORT:6334}
+        api-key: ${QDRANT_API_KEY:123456}
+        collection-name: lwh_document_chunks
+        initialize-schema: true
+
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.linkwisehub.modules.base.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+server:
+  port: 8080
+
+onlyoffice:
+  document-server-url: http://10.211.55.6
+  public-backend-url: http://10.211.55.2:8080
+  jwt-secret: 0b31adc1d8c1e805f1407829559101cf243788b103798300992b175eb00b08d6
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+minio:
+  endpoint: http://10.211.55.6:9000
+  access-key: admin
+  secret-key: wangjun=5201314
+  bucket-name: oa-bucket
+
+file:
+  upload:
+    path: ./uploads
+    access:
+      url: http://localhost:8080/uploads
+
+# 业务 AI 配置，用于智能问答等聊天能力。
+ai:
+  document:
+    bucket-name: knowledge-base
+  # AI服务提供商: deepseek, aliyun, minimax, ollama
+  provider: deepseek
+  # 默认模型: deepseek-v4-flash, qwen3.5-plus, MiniMax-M2.7-highspeed, qwen3.6:latest
+  default-model: deepseek-v4-flash
+  deepseek:
+    api-key: sk-f220ff14dd3a48038ba6d0f285fef475
+    model: deepseek-v4-flash
+    base-url: https://api.deepseek.com
+    timeout: 30000
+    max-tokens: 2000
+    temperature: 0.7
+  aliyun:
+    # 仅用于普通百炼聊天 provider；RAG embedding 已切换为本地 Ollama bge-m3。
+    api-key: ${AI_DASHSCOPE_API_KEY:sk-9ee1cb6717884ee28d1ae2a31369f7fc}
+    model: qwen3.5-plus
+    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    timeout: 30000
+    max-tokens: 2000
+    temperature: 0.7
+  minimax:
+    api-key: sk-cp-VC2khvXjPWdWOF2iNK4ASoVcFNPfoAxO4glhEin3HaeH6QhP7PmPFrFcCp2MFxpTG5vl-vd07yXGcc5NduGh-6j3CmpnFz02uF7pj4KCy4aklNGTc4ttPp0
+    model: MiniMax-M2.7-highspeed
+    base-url: https://api.minimax.chat/v1
+    timeout: 30000
+    max-tokens: 2000
+    temperature: 1.0
+  ollama:
+    model: qwen3.6:latest
+    base-url: http://127.0.0.1:11434
+    timeout: 600000
+    max-tokens: 2000
+    temperature: 0.7
+  retry:
+    # 是否启用重试机制
+    enabled: true
+    # 最大重试次数
+    max-attempts: 3
+    # 初始重试间隔（毫秒）
+    delay-ms: 1000
+    # 最大重试间隔（毫秒）
+    max-delay-ms: 5000
+    # 乘法因子（用于指数退避）
+    multiplier: 2.0
+  chat:
+    history:
+      recent-rounds: 6
+      local-recent-rounds: 3
+      summary-trigger-rounds: 6
+      summary-max-chars: 1200
+      history-max-chars: 8000
+      local-history-max-chars: 3000
+  search:
+    elasticsearch:
+      enabled: true
+      uris: ${ELASTICSEARCH_URIS:http://10.211.55.6:9200}
+      username: ${ELASTICSEARCH_USERNAME:elastic}
+      password: ${ELASTICSEARCH_PASSWORD:j+WixZJMxOp/phxFbHAR12i74wXwYgVc}
+      index-name: lwh_document_chunks_bm25
+      top-k: 20
+      title-boost: 2.0
+      content-boost: 1.0
+      rebuild-batch-size: 200
+
+# 阿里智能外呼机器人配置
+aliyun:
+  outbound-bot:
+    # demo 默认关闭；本地联调时通过环境变量或本地私有配置开启
+    enabled: ${ALIYUN_OUTBOUND_BOT_ENABLED:false}
+    access-key-id: ${ALIYUN_OUTBOUND_BOT_ACCESS_KEY_ID:}
+    access-key-secret: ${ALIYUN_OUTBOUND_BOT_ACCESS_KEY_SECRET:}
+    endpoint: ${ALIYUN_OUTBOUND_BOT_ENDPOINT:outboundbot.cn-shanghai.aliyuncs.com}
+    region-id: ${ALIYUN_OUTBOUND_BOT_REGION_ID:cn-shanghai}
+    instance-id: ${ALIYUN_OUTBOUND_BOT_INSTANCE_ID:}
+    script-id: ${ALIYUN_OUTBOUND_BOT_SCRIPT_ID:}
+    scenario-id: ${ALIYUN_OUTBOUND_BOT_SCENARIO_ID:}
+    calling-numbers: ${ALIYUN_OUTBOUND_BOT_CALLING_NUMBERS:}
+    recall-calling-numbers: ${ALIYUN_OUTBOUND_BOT_RECALL_CALLING_NUMBERS:}
+    callback-secret: ${ALIYUN_OUTBOUND_BOT_CALLBACK_SECRET:}
+    source-ip-whitelist: ${ALIYUN_OUTBOUND_BOT_SOURCE_IP_WHITELIST:}
+    connect-timeout-seconds: ${ALIYUN_OUTBOUND_BOT_CONNECT_TIMEOUT_SECONDS:3}
+    read-timeout-seconds: ${ALIYUN_OUTBOUND_BOT_READ_TIMEOUT_SECONDS:10}
+    async-wait-timeout-seconds: ${ALIYUN_OUTBOUND_BOT_ASYNC_WAIT_TIMEOUT_SECONDS:10}
+    callback-timestamp-tolerance-seconds: ${ALIYUN_OUTBOUND_BOT_CALLBACK_TIMESTAMP_TOLERANCE_SECONDS:300}

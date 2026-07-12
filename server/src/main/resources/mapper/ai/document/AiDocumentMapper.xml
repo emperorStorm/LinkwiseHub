@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.linkwisehub.modules.ai.document.mapper.AiDocumentMapper">
+    <resultMap id="AiDocumentResultMap" type="com.linkwisehub.modules.ai.document.entity.AiDocument">
+        <id property="id" column="id"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="title" column="title"/>
+        <result property="fileName" column="file_name"/>
+        <result property="fileType" column="file_type"/>
+        <result property="fileSize" column="file_size"/>
+        <result property="storageBucket" column="storage_bucket"/>
+        <result property="storagePath" column="storage_path"/>
+        <result property="parseStatus" column="parse_status"/>
+        <result property="chunkCount" column="chunk_count"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="contentHtml" column="content_html"/>
+        <result property="publishStatus" column="publish_status"/>
+        <result property="sourceType" column="source_type"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectAll" resultMap="AiDocumentResultMap">
+        SELECT *
+        FROM lwh_ai_document
+        WHERE status = 1
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectDocumentProcessList" resultMap="AiDocumentResultMap">
+        SELECT *
+        FROM lwh_ai_document
+        WHERE status = 1
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectKnowledgeDocuments" resultMap="AiDocumentResultMap">
+        SELECT *
+        FROM lwh_ai_document
+        WHERE status = 1
+          AND source_type IN ('CONTENT', 'FILE', 'MIXED')
+        <if test="categoryIds != null">
+        <choose>
+            <when test="categoryIds.size() > 0">
+          AND category_id IN
+          <foreach collection="categoryIds" item="categoryId" open="(" separator="," close=")">
+              #{categoryId}
+          </foreach>
+            </when>
+            <otherwise>
+          AND 1 = 0
+            </otherwise>
+        </choose>
+        </if>
+        <if test="keyword != null and keyword != ''">
+          AND (title LIKE CONCAT('%', #{keyword}, '%') OR file_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="publishStatus != null and publishStatus != ''">
+          AND publish_status = #{publishStatus}
+        </if>
+        ORDER BY update_time DESC
+    </select>
+
+    <select id="selectById" resultMap="AiDocumentResultMap">
+        SELECT *
+        FROM lwh_ai_document
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="com.linkwisehub.modules.ai.document.entity.AiDocument" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO lwh_ai_document
+        (category_id, title, file_name, file_type, file_size, storage_bucket, storage_path, parse_status, chunk_count, error_message, content_html, publish_status, source_type, status)
+        VALUES
+        (#{categoryId}, #{title}, #{fileName}, #{fileType}, #{fileSize}, #{storageBucket}, #{storagePath}, #{parseStatus}, #{chunkCount}, #{errorMessage}, #{contentHtml}, COALESCE(#{publishStatus}, 'DRAFT'), #{sourceType}, #{status})
+    </insert>
+
+    <update id="updateKnowledgeDocument" parameterType="com.linkwisehub.modules.ai.document.entity.AiDocument">
+        UPDATE lwh_ai_document
+        SET category_id = #{categoryId},
+            title = #{title},
+            file_name = #{fileName},
+            file_type = #{fileType},
+            file_size = #{fileSize},
+            storage_bucket = #{storageBucket},
+            storage_path = #{storagePath},
+            parse_status = #{parseStatus},
+            chunk_count = #{chunkCount},
+            error_message = #{errorMessage},
+            content_html = #{contentHtml},
+            publish_status = #{publishStatus},
+            source_type = #{sourceType}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateParseResult">
+        UPDATE lwh_ai_document
+        SET parse_status = #{parseStatus},
+            chunk_count = #{chunkCount},
+            error_message = #{errorMessage}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE lwh_ai_document
+        SET status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updatePublishStatus">
+        UPDATE lwh_ai_document
+        SET publish_status = #{publishStatus}
+        WHERE id = #{id}
+    </update>
+
+    <select id="countByCategoryId" resultType="int">
+        SELECT COUNT(1)
+        FROM lwh_ai_document
+        WHERE status = 1
+          AND source_type IN ('CONTENT', 'FILE', 'MIXED')
+        <choose>
+            <when test="categoryIds != null and categoryIds.size() > 0">
+              AND category_id IN
+              <foreach collection="categoryIds" item="categoryId" open="(" separator="," close=")">
+                  #{categoryId}
+              </foreach>
+            </when>
+            <otherwise>
+              AND 1 = 0
+            </otherwise>
+        </choose>
+    </select>
+</mapper>

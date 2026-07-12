@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.linkwisehub.modules.base.mapper.OrganizationMapper">
+    <resultMap id="OrganizationResultMap" type="com.linkwisehub.modules.base.entity.Organization">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="level" column="level"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectAll" resultMap="OrganizationResultMap">
+        SELECT * FROM lwh_base_organization
+    </select>
+    
+    <select id="selectById" resultMap="OrganizationResultMap">
+        SELECT * FROM lwh_base_organization WHERE id = #{id}
+    </select>
+    
+    <insert id="insert" parameterType="com.linkwisehub.modules.base.entity.Organization">
+        INSERT INTO lwh_base_organization (name, parent_id, level, status) 
+        VALUES (#{name}, #{parentId}, #{level}, #{status})
+    </insert>
+    
+    <update id="update" parameterType="com.linkwisehub.modules.base.entity.Organization">
+        UPDATE lwh_base_organization 
+        SET name = #{name}, parent_id = #{parentId}, level = #{level}, status = #{status} 
+        WHERE id = #{id}
+    </update>
+    
+    <delete id="delete" parameterType="Long">
+        DELETE FROM lwh_base_organization WHERE id = #{id}
+    </delete>
+    
+    <select id="selectByParentId" resultMap="OrganizationResultMap">
+        SELECT * FROM lwh_base_organization WHERE parent_id = #{parentId}
+    </select>
+</mapper>
