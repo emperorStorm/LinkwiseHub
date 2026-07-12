@@ -1,7 +1,7 @@
 services:
   qdrant:
-    image: qdrant/qdrant:v1.15.3
-    container_name: oa-qdrant
+    image: qdrant/qdrant:v1.18.2
+    container_name: linkwisehub-qdrant
     ports:
       - "6333:6333"
       - "6334:6334"
