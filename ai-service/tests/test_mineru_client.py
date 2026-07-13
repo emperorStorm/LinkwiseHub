@@ -25,3 +25,20 @@ async def test_rejects_invalid_mineru_payload() -> None:
     async with httpx.AsyncClient(base_url="http://mineru", transport=transport) as client:
         with pytest.raises(MinerUError, match="invalid task payload"):
             await MinerUClient(client, 30).get_status("task-1")
+
+
+@pytest.mark.asyncio
+async def test_uses_mineru_bearer_token_from_client_headers() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["authorization"] == "Bearer mineru-token"
+        return httpx.Response(200, json={"task_id": "task-1", "status": "pending"})
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(
+        base_url="http://mineru",
+        headers={"Authorization": "Bearer mineru-token"},
+        transport=transport,
+    ) as client:
+        task = await MinerUClient(client, 30).get_status("task-1")
+
+    assert task.task_id == "task-1"

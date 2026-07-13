@@ -55,12 +55,12 @@ cp .env.example .env
 docker compose up --build
 ```
 
-AI 服务默认地址为 `http://localhost:8090`，MinerU 默认地址为 `http://localhost:8000`。确认以下接口可用后，再把 Java 解析策略切换为 `AUTO`：
+AI 服务默认地址为 `http://localhost:8090`，MinerU 虚拟机地址为 `http://10.211.55.6:8000`。确认以下接口可用后，再把 Java 解析策略切换为 `AUTO`：
 
 ```text
 http://localhost:8090/health/live
 http://localhost:8090/health/ready
-http://localhost:8000/health
+http://10.211.55.6:8000/health
 ```
 
 Java 侧至少需要配置 `AI_SERVICE_TOKEN`，且必须与 `ai-service/.env` 一致。详细配置见 [AI 服务说明](ai-service.md)。

@@ -10,7 +10,7 @@ MinerU 是 OCR、版面分析和结构化文档解析引擎，不等同于智能
 
 1. Web Admin 把文件和解析策略提交给 Spring Boot。
 2. Java 校验文件、写入 MinIO，并创建 `lwh_ai_document` 和 `lwh_ai_processing_job`，统一返回 HTTP 202。
-3. Python 从 MinIO 流式读取源文件，调用 MinerU `POST /tasks`。
+3. Python 从 MinIO 流式读取源文件，携带 `Authorization: Bearer <MINERU_API_TOKEN>` 调用虚拟机 MinerU `POST /tasks`。
 4. Java 调度器轮询 Python，Python映射 MinerU 的任务状态。
 5. MinerU 完成后，Python写入 `content.md`、`blocks.json`、`manifest.json` 和图片资源。
 6. Java读取标准化块，保留页码、块类型和标题元数据，再写入 MySQL、Qdrant 和 Elasticsearch。
@@ -36,7 +36,9 @@ AI_DOCUMENT_TASK_TIMEOUT_MINUTES=60
 AI_DOCUMENT_MAX_ATTEMPTS=3
 ```
 
-Python 环境变量见 `ai-service/.env.example`。生产环境必须使用独立服务令牌和最小权限 MinIO 账号，不得把真实密钥写入仓库。
+Python 环境变量见 `ai-service/.env.example`。当前 MinerU 地址为 `http://10.211.55.6:8000`，版本为 `3.4.4`，模型来源为 `local`。生产环境必须使用独立服务令牌、MinerU API token 和最小权限 MinIO 账号，不得把真实密钥写入仓库。
+
+`MINERU_IMAGE`、`CADDY_IMAGE` 和模型下载来源是虚拟机部署参数，AI 服务 Compose 只负责启动 Python 服务，不会覆盖虚拟机上的 MinerU 实例。
 
 ## 内部接口
 

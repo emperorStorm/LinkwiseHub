@@ -20,6 +20,11 @@ async def lifespan(app: FastAPI):
     http_client = httpx.AsyncClient(
         base_url=settings.mineru_base_url.rstrip("/"),
         timeout=settings.mineru_request_timeout_seconds,
+        headers=(
+            {"Authorization": f"Bearer {settings.mineru_api_token}"}
+            if settings.mineru_api_token
+            else {}
+        ),
     )
     minio_client = Minio(
         settings.minio_endpoint,
