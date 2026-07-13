@@ -6,6 +6,7 @@
         <p class="page-subtitle">上传后自动完成 RAG 切片与向量索引，可预览 Chunk。</p>
       </div>
       <div class="header-actions">
+        <a-segmented v-model:value="parseStrategy" :options="parseStrategyOptions" />
         <a-upload
           :show-upload-list="false"
           :before-upload="beforeUpload"
@@ -61,7 +62,12 @@
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'title'">
             <div class="document-title-cell">
-              <a-button type="link" class="file-link" @click.stop="openChunkModal(record)">
+              <a-button
+                type="link"
+                class="file-link"
+                :disabled="record.parseStatus !== 'SUCCESS'"
+                @click.stop="openChunkModal(record)"
+              >
                 {{ getDocumentTitle(record) }}
               </a-button>
               <span>{{ record.fileName }}</span>
@@ -74,9 +80,17 @@
             {{ formatFileSize(record.fileSize) }}
           </template>
           <template v-else-if="column.key === 'parseStatus'">
-            <a-tag :color="getStatusColor(record.parseStatus)">
-              {{ getStatusText(record.parseStatus) }}
-            </a-tag>
+            <div class="parse-status-cell">
+              <a-tag :color="getStatusColor(record.parseStatus)">
+                {{ getStatusText(record.parseStatus) }}
+              </a-tag>
+              <a-progress
+                v-if="record.parseStatus === 'PROCESSING'"
+                :percent="getJobProgress(record.id)"
+                :show-info="false"
+                size="small"
+              />
+            </div>
           </template>
           <template v-else-if="column.key === 'publishStatus'">
             <a-tag :color="record.publishStatus === 'PUBLISHED' ? 'green' : 'default'">
@@ -93,9 +107,24 @@
           </template>
           <template v-else-if="column.key === 'action'">
             <a-space @click.stop>
-              <a-button size="small" type="link" @click.stop="openChunkModal(record)">
+              <a-button
+                size="small"
+                type="link"
+                :disabled="record.parseStatus !== 'SUCCESS'"
+                @click.stop="openChunkModal(record)"
+              >
                 <template #icon><unordered-list-outlined /></template>
                 Chunk查看
+              </a-button>
+              <a-button
+                v-if="record.parseStatus === 'FAILED'"
+                size="small"
+                type="link"
+                :loading="retryingDocumentId === record.id"
+                @click.stop="handleRetry(record)"
+              >
+                <template #icon><redo-outlined /></template>
+                重试
               </a-button>
               <a-popconfirm
                 title="确定删除该文档和全部 Chunk 吗？"
@@ -185,11 +214,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
   DeleteOutlined,
+  RedoOutlined,
   ReloadOutlined,
   SettingOutlined,
   UnorderedListOutlined,
@@ -198,12 +228,19 @@ import {
 import {
   deleteDocument,
   getDocumentChunks,
+  getDocumentParseJob,
   getDocuments,
   getSplitConfig,
+  retryDocumentParse,
   saveSplitConfig,
   uploadDocument
 } from '@/api/ai'
-import { DOCUMENT_ACCEPT, DOCUMENT_ALLOWED_TYPES, DOCUMENT_SUPPORTED_TEXT } from '@/utils/documentFileTypes'
+import {
+  DOCUMENT_ACCEPT,
+  DOCUMENT_ALLOWED_TYPES,
+  DOCUMENT_IMAGE_TYPES,
+  DOCUMENT_SUPPORTED_TEXT
+} from '@/utils/documentFileTypes'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024
 const route = useRoute()
@@ -213,6 +250,9 @@ const chunks = ref([])
 const currentDocument = ref(null)
 const chunkModalVisible = ref(false)
 const uploading = ref(false)
+const retryingDocumentId = ref(null)
+const parseStrategy = ref('LEGACY')
+const jobProgress = ref({})
 const documentLoading = ref(false)
 const chunkLoading = ref(false)
 const splitConfigLoading = ref(false)
@@ -227,6 +267,12 @@ const query = reactive({
   keyword: '',
   dateRange: []
 })
+const parseStrategyOptions = [
+  { label: '兼容解析', value: 'LEGACY' },
+  { label: '自动选择', value: 'AUTO' },
+  { label: 'MinerU', value: 'MINERU' }
+]
+let pollingTimer = null
 
 const documentColumns = [
   { title: '标题', dataIndex: 'title', key: 'title', width: 260, ellipsis: true },
@@ -239,7 +285,7 @@ const documentColumns = [
   { title: '错误信息', dataIndex: 'errorMessage', key: 'errorMessage', width: 180, ellipsis: true },
   { title: '上传时间', dataIndex: 'createTime', key: 'createTime', width: 170 },
   { title: '更新时间', dataIndex: 'updateTime', key: 'updateTime', width: 170 },
-  { title: '操作', key: 'action', width: 180, fixed: 'right' }
+  { title: '操作', key: 'action', width: 240, fixed: 'right' }
 ]
 
 const chunkColumns = [
@@ -287,6 +333,10 @@ const beforeUpload = (file) => {
     message.error(`仅支持 ${DOCUMENT_SUPPORTED_TEXT} 文件`)
     return false
   }
+  if (parseStrategy.value === 'LEGACY' && DOCUMENT_IMAGE_TYPES.includes(suffix)) {
+    message.error('图片文件需要选择“自动选择”或“MinerU”解析')
+    return false
+  }
   if (file.size > MAX_FILE_SIZE) {
     message.error('文件大小不能超过 10MB')
     return false
@@ -304,12 +354,13 @@ const beforeUpload = (file) => {
 const handleUpload = async ({ file, onSuccess, onError }) => {
   uploading.value = true
   try {
-    const response = await uploadDocument(file)
+    const response = await uploadDocument(file, parseStrategy.value)
     const result = response?.data || response
-    message.success(`解析成功，生成 ${result.chunkCount || 0} 个 Chunk`)
+    const processing = result.parseStatus === 'PROCESSING'
+    message.success(processing ? '文档已进入解析队列' : `解析成功，生成 ${result.chunkCount || 0} 个 Chunk`)
     await loadDocuments()
     const uploaded = documents.value.find(item => item.id === result.documentId)
-    if (uploaded) {
+    if (uploaded && !processing) {
       await openChunkModal(uploaded)
     }
     onSuccess?.(response)
@@ -329,11 +380,40 @@ const loadDocuments = async () => {
   try {
     const response = await getDocuments()
     documents.value = response?.data || response || []
+    await loadProcessingJobs()
     await selectRouteDocument()
   } catch (error) {
     message.error('加载文档列表失败')
   } finally {
     documentLoading.value = false
+  }
+}
+
+const loadProcessingJobs = async () => {
+  const processingDocuments = documents.value.filter(item => item.parseStatus === 'PROCESSING')
+  const entries = await Promise.all(processingDocuments.map(async item => {
+    try {
+      const response = await getDocumentParseJob(item.id)
+      return [item.id, response?.data || response]
+    } catch (error) {
+      return [item.id, null]
+    }
+  }))
+  jobProgress.value = Object.fromEntries(entries)
+}
+
+const getJobProgress = (documentId) => jobProgress.value[documentId]?.progress || 0
+
+const handleRetry = async (record) => {
+  retryingDocumentId.value = record.id
+  try {
+    await retryDocumentParse(record.id, parseStrategy.value)
+    message.success('文档已重新提交解析')
+    await loadDocuments()
+  } catch (error) {
+    message.error(error.response?.data?.message || error.message || '重新解析失败')
+  } finally {
+    retryingDocumentId.value = null
   }
 }
 
@@ -372,7 +452,7 @@ const selectRouteDocument = async () => {
     return
   }
   const target = documents.value.find(item => item.id === documentId)
-  if (target) {
+  if (target?.parseStatus === 'SUCCESS') {
     await openChunkModal(target)
   }
 }
@@ -536,6 +616,17 @@ watch(
 onMounted(() => {
   loadDocuments()
   loadSplitConfig()
+  pollingTimer = window.setInterval(() => {
+    if (documents.value.some(item => item.parseStatus === 'PROCESSING') && !documentLoading.value) {
+      loadDocuments()
+    }
+  }, 3000)
+})
+
+onBeforeUnmount(() => {
+  if (pollingTimer) {
+    window.clearInterval(pollingTimer)
+  }
 })
 </script>
 
@@ -554,6 +645,14 @@ onMounted(() => {
   border-bottom: 1px solid #e2e8f0;
 }
 
+.parse-status-cell {
+  width: 88px;
+}
+
+.parse-status-cell :deep(.ant-progress) {
+  margin-top: 4px;
+}
+
 .page-title {
   margin: 0;
   color: #1e293b;
@@ -570,6 +669,8 @@ onMounted(() => {
 .header-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 10px;
 }
 
@@ -686,6 +787,7 @@ onMounted(() => {
 
   .header-actions {
     width: 100%;
+    justify-content: flex-start;
   }
 
   .panel-toolbar,

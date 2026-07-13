@@ -56,8 +56,8 @@ const quickActions = [
   {
     icon: QuestionCircleOutlined,
     title: '查询系统功能',
-    desc: '快速了解OA模块',
-    message: '请介绍一下OA系统里智能问答和文档分片模块可以做什么。'
+    desc: '快速了解智链中枢模块',
+    message: '请介绍一下智链中枢里智能问答和文档分片模块可以做什么。'
   },
   {
     icon: BookOutlined,

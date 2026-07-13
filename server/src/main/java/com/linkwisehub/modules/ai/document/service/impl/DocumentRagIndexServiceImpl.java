@@ -5,6 +5,7 @@ import com.linkwisehub.common.ErrorCode;
 import com.linkwisehub.common.exception.BusinessException;
 import com.linkwisehub.modules.ai.document.dto.AiDocumentChunkIndexDto;
 import com.linkwisehub.modules.ai.document.dto.DocumentRagIndexRequest;
+import com.linkwisehub.modules.ai.document.dto.ParsedDocumentBlock;
 import com.linkwisehub.modules.ai.document.dto.VectorIndexRebuildRespDto;
 import com.linkwisehub.modules.ai.document.entity.AiDocumentChunk;
 import com.linkwisehub.modules.ai.document.entity.AiDocumentSplitConfig;
@@ -72,7 +73,7 @@ public class DocumentRagIndexServiceImpl implements DocumentRagIndexService {
                 continue;
             }
             String vectorId = buildVectorId(request.getDocumentId(), chunkIndex);
-            Map<String, Object> metadata = buildMetadata(request, chunkIndex, vectorId);
+            Map<String, Object> metadata = buildMetadata(request, splitDocument, chunkIndex, vectorId);
             Map<String, Object> vectorMetadata = normalizeMetadataForQdrant(metadata);
             chunks.add(buildChunk(request, content.trim(), chunkIndex, vectorId, metadata));
             vectorIds.add(vectorId);
@@ -88,6 +89,7 @@ public class DocumentRagIndexServiceImpl implements DocumentRagIndexService {
         }
 
         deleteIndexByDocumentId(request.getDocumentId());
+        chunkMapper.updateStatusByDocumentId(request.getDocumentId(), 0);
         try {
             vectorStore.add(vectorDocuments);
             chunkMapper.batchInsert(chunks);
@@ -95,6 +97,7 @@ public class DocumentRagIndexServiceImpl implements DocumentRagIndexService {
         } catch (RuntimeException e) {
             deleteVectorIdsQuietly(vectorIds);
             documentSparseIndexService.deleteByDocumentId(request.getDocumentId());
+            chunkMapper.updateStatusByDocumentId(request.getDocumentId(), 0);
             throw e;
         }
         return chunks;
@@ -220,19 +223,49 @@ public class DocumentRagIndexServiceImpl implements DocumentRagIndexService {
     }
 
     private List<Document> splitDocuments(DocumentRagIndexRequest request) {
+        if (request.getBlocks() != null && !request.getBlocks().isEmpty()) {
+            return splitParsedBlocks(request);
+        }
         Document sourceDocument = Document.builder()
                 .id("oa-doc-" + request.getDocumentId())
                 .text(request.getText().trim())
                 .metadata(buildSourceMetadata(request))
                 .build();
-        TokenTextSplitter splitter = TokenTextSplitter.builder()
-                .withChunkSize(resolveChunkSize(request.getSplitConfig()))
+        return buildSplitter(request.getSplitConfig()).split(sourceDocument);
+    }
+
+    private List<Document> splitParsedBlocks(DocumentRagIndexRequest request) {
+        List<Document> documents = new ArrayList<>();
+        TokenTextSplitter splitter = buildSplitter(request.getSplitConfig());
+        for (ParsedDocumentBlock block : request.getBlocks()) {
+            if (block == null || !StringUtils.hasText(block.getContent())) {
+                continue;
+            }
+            Map<String, Object> metadata = buildSourceMetadata(request);
+            metadata.put("sourcePage", block.getPage() == null ? 1 : block.getPage());
+            metadata.put("blockType", safeString(block.getBlockType()));
+            metadata.put("sourceTitle", StringUtils.hasText(block.getTitle()) ? block.getTitle() : resolveSourceTitle(request));
+            if (block.getMetadata() != null) {
+                metadata.putAll(block.getMetadata());
+            }
+            Document source = Document.builder()
+                    .id("oa-doc-" + request.getDocumentId() + "-block-" + block.getIndex())
+                    .text(block.getContent().trim())
+                    .metadata(metadata)
+                    .build();
+            documents.addAll(splitter.split(source));
+        }
+        return documents;
+    }
+
+    private TokenTextSplitter buildSplitter(AiDocumentSplitConfig splitConfig) {
+        return TokenTextSplitter.builder()
+                .withChunkSize(resolveChunkSize(splitConfig))
                 .withMinChunkSizeChars(MIN_CHUNK_SIZE_CHARS)
                 .withMinChunkLengthToEmbed(MIN_CHUNK_LENGTH_TO_EMBED)
                 .withMaxNumChunks(MAX_NUM_CHUNKS)
                 .withKeepSeparator(true)
                 .build();
-        return splitter.split(sourceDocument);
     }
 
     private AiDocumentChunk buildChunk(DocumentRagIndexRequest request, String content, Integer chunkIndex,
@@ -242,8 +275,8 @@ public class DocumentRagIndexServiceImpl implements DocumentRagIndexService {
         chunk.setChunkIndex(chunkIndex);
         chunk.setContent(content);
         chunk.setContentLength(content.length());
-        chunk.setSourceTitle(resolveSourceTitle(request));
-        chunk.setSourcePage(1);
+        chunk.setSourceTitle(stringMetadata(metadata, "sourceTitle", resolveSourceTitle(request)));
+        chunk.setSourcePage(integerMetadata(metadata, "sourcePage", 1));
         chunk.setSourceParagraph(chunkIndex);
         chunk.setMetadataJson(JSON.toJSONString(metadata));
         chunk.setVectorId(vectorId);
@@ -266,8 +299,12 @@ public class DocumentRagIndexServiceImpl implements DocumentRagIndexService {
         return metadata;
     }
 
-    private Map<String, Object> buildMetadata(DocumentRagIndexRequest request, Integer chunkIndex, String vectorId) {
+    private Map<String, Object> buildMetadata(DocumentRagIndexRequest request, Document splitDocument,
+                                               Integer chunkIndex, String vectorId) {
         Map<String, Object> metadata = buildSourceMetadata(request);
+        if (splitDocument.getMetadata() != null) {
+            metadata.putAll(splitDocument.getMetadata());
+        }
         metadata.put("chunkIndex", chunkIndex);
         metadata.put("vectorId", vectorId);
         metadata.put("businessVectorId", buildBusinessVectorId(request.getDocumentId(), chunkIndex));
@@ -328,11 +365,31 @@ public class DocumentRagIndexServiceImpl implements DocumentRagIndexService {
         return value == null ? "" : value;
     }
 
+    private String stringMetadata(Map<String, Object> metadata, String key, String defaultValue) {
+        Object value = metadata.get(key);
+        return value == null || value.toString().isBlank() ? defaultValue : value.toString();
+    }
+
+    private Integer integerMetadata(Map<String, Object> metadata, String key, Integer defaultValue) {
+        Object value = metadata.get(key);
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        try {
+            return value == null ? defaultValue : Integer.valueOf(value.toString());
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
     private void validateRequest(DocumentRagIndexRequest request) {
         if (request == null || request.getDocumentId() == null) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "文档ID不能为空");
         }
-        if (!StringUtils.hasText(request.getText())) {
+        boolean hasText = StringUtils.hasText(request.getText());
+        boolean hasBlocks = request.getBlocks() != null && request.getBlocks().stream()
+                .anyMatch(block -> block != null && StringUtils.hasText(block.getContent()));
+        if (!hasText && !hasBlocks) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "文档内容为空");
         }
     }

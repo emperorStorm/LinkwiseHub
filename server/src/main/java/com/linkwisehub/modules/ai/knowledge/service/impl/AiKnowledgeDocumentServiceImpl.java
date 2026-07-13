@@ -2,15 +2,17 @@ package com.linkwisehub.modules.ai.knowledge.service.impl;
 
 import com.linkwisehub.common.ErrorCode;
 import com.linkwisehub.common.exception.BusinessException;
+import com.linkwisehub.config.AiDocumentProcessingProperties;
 import com.linkwisehub.modules.ai.document.dto.AiDocumentChunkRespDto;
 import com.linkwisehub.modules.ai.document.dto.DocumentRagIndexRequest;
 import com.linkwisehub.modules.ai.document.dto.DocumentStorageResult;
 import com.linkwisehub.modules.ai.document.entity.AiDocument;
 import com.linkwisehub.modules.ai.document.entity.AiDocumentChunk;
 import com.linkwisehub.modules.ai.document.entity.AiDocumentSplitConfig;
+import com.linkwisehub.modules.ai.document.enums.DocumentParseStrategy;
 import com.linkwisehub.modules.ai.document.mapper.AiDocumentChunkMapper;
 import com.linkwisehub.modules.ai.document.mapper.AiDocumentMapper;
-import com.linkwisehub.modules.ai.document.service.DocumentParseService;
+import com.linkwisehub.modules.ai.document.service.DocumentProcessingJobService;
 import com.linkwisehub.modules.ai.document.service.DocumentRagIndexService;
 import com.linkwisehub.modules.ai.document.service.DocumentSplitConfigService;
 import com.linkwisehub.modules.ai.document.service.DocumentSparseIndexService;
@@ -27,7 +29,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -48,33 +49,36 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
     private final AiDocumentChunkMapper chunkMapper;
     private final AiKnowledgeCategoryMapper categoryMapper;
     private final AiKnowledgeCategoryService categoryService;
-    private final DocumentParseService documentParseService;
     private final DocumentStorageService documentStorageService;
     private final DocumentSplitConfigService documentSplitConfigService;
     private final TextCleanService textCleanService;
     private final DocumentRagIndexService documentRagIndexService;
     private final DocumentSparseIndexService documentSparseIndexService;
+    private final DocumentProcessingJobService processingJobService;
+    private final AiDocumentProcessingProperties processingProperties;
 
     public AiKnowledgeDocumentServiceImpl(AiDocumentMapper documentMapper,
                                           AiDocumentChunkMapper chunkMapper,
                                           AiKnowledgeCategoryMapper categoryMapper,
                                           AiKnowledgeCategoryService categoryService,
-                                          DocumentParseService documentParseService,
                                           DocumentStorageService documentStorageService,
                                           DocumentSplitConfigService documentSplitConfigService,
                                           TextCleanService textCleanService,
                                           DocumentRagIndexService documentRagIndexService,
-                                          DocumentSparseIndexService documentSparseIndexService) {
+                                          DocumentSparseIndexService documentSparseIndexService,
+                                          DocumentProcessingJobService processingJobService,
+                                          AiDocumentProcessingProperties processingProperties) {
         this.documentMapper = documentMapper;
         this.chunkMapper = chunkMapper;
         this.categoryMapper = categoryMapper;
         this.categoryService = categoryService;
-        this.documentParseService = documentParseService;
         this.documentStorageService = documentStorageService;
         this.documentSplitConfigService = documentSplitConfigService;
         this.textCleanService = textCleanService;
         this.documentRagIndexService = documentRagIndexService;
         this.documentSparseIndexService = documentSparseIndexService;
+        this.processingJobService = processingJobService;
+        this.processingProperties = processingProperties;
     }
 
     @Override
@@ -104,7 +108,7 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
             fillDocument(document, reqDto, parsedInput);
             document.setStatus(1);
             documentMapper.insert(document);
-            saveChunks(document, parsedInput.getCombinedText());
+            processDocument(document, parsedInput);
             return toRespDto(documentMapper.selectById(document.getId()), getCategoryName(document.getCategoryId()));
         } catch (RuntimeException e) {
             documentRagIndexService.deleteIndexByDocumentId(document.getId());
@@ -129,7 +133,7 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
             documentRagIndexService.deleteIndexByDocumentId(id);
             chunkMapper.updateStatusByDocumentId(id, 0);
             documentMapper.updateKnowledgeDocument(oldDocument);
-            saveChunks(oldDocument, parsedInput.getCombinedText());
+            processDocument(oldDocument, parsedInput);
             if (parsedInput.isFileReplaced() && oldPath != null) {
                 documentStorageService.deleteQuietly(oldBucket, oldPath);
             }
@@ -183,6 +187,7 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
         document.setSourceType("CONTENT");
 
         documentRagIndexService.deleteIndexByDocumentId(id);
+        processingJobService.cancelActive(id);
         chunkMapper.updateStatusByDocumentId(id, 0);
         documentMapper.updateKnowledgeDocument(document);
         saveChunks(document, combineText(document.getTitle(), contentText, ""));
@@ -197,11 +202,8 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
         if (!hasStoredFile(document)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "当前知识文档没有可重建的附件");
         }
-        String contentText = htmlToText(document.getContentHtml());
-        String fileText = documentParseService.parse(
-                documentStorageService.getObject(document.getStorageBucket(), document.getStoragePath()),
-                document.getFileType());
-        String combinedText = combineText(document.getTitle(), contentText, fileText);
+        DocumentParseStrategy strategy = processingProperties.getStrategy();
+        validateParseStrategy(document.getFileType(), strategy);
         document.setFileSize(fileSize);
         document.setParseStatus(STATUS_PROCESSING);
         document.setChunkCount(0);
@@ -209,13 +211,14 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
         documentRagIndexService.deleteIndexByDocumentId(id);
         chunkMapper.updateStatusByDocumentId(id, 0);
         documentMapper.updateKnowledgeDocument(document);
-        saveChunks(document, combinedText);
+        processingJobService.submit(document, strategy);
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
         AiDocument document = ensureActiveKnowledgeDocument(id);
+        processingJobService.cancelActive(id);
         documentRagIndexService.deleteIndexByDocumentId(id);
         chunkMapper.updateStatusByDocumentId(id, 0);
         documentMapper.updateStatus(id, 0);
@@ -237,26 +240,27 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
         long fileSize = oldDocument == null || oldDocument.getFileSize() == null ? 0L : oldDocument.getFileSize();
         String storageBucket = oldDocument == null ? "" : oldDocument.getStorageBucket();
         String storagePath = oldDocument == null ? "" : oldDocument.getStoragePath();
-        String fileText = "";
         boolean fileReplaced = false;
+        boolean asyncParse = false;
+        DocumentParseStrategy strategy = processingProperties.getStrategy();
 
         if (hasFile) {
             validateFile(file);
             fileName = file.getOriginalFilename();
             fileType = getFileType(fileName);
             fileSize = file.getSize();
+            validateParseStrategy(fileType, strategy);
+            asyncParse = true;
             DocumentStorageResult storageResult = documentStorageService.upload(file, fileType);
             storageBucket = storageResult.getBucketName();
             storagePath = storageResult.getObjectName();
-            fileText = documentParseService.parse(getInputStream(file), fileType);
             fileReplaced = true;
         } else if (oldDocument != null && hasStoredFile(oldDocument)) {
-            fileText = documentParseService.parse(
-                    documentStorageService.getObject(oldDocument.getStorageBucket(), oldDocument.getStoragePath()),
-                    oldDocument.getFileType());
+            validateParseStrategy(oldDocument.getFileType(), strategy);
+            asyncParse = true;
         }
 
-        String combinedText = combineText(title, contentText, fileText);
+        String combinedText = combineText(title, contentText, "");
         if (combinedText.isBlank()) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "内容和文件至少填写一个");
         }
@@ -271,15 +275,16 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
         input.setStoragePath(storagePath);
         input.setSourceType(resolveSourceType(hasContent, hasFile || oldDocument != null && hasStoredFile(oldDocument)));
         input.setFileReplaced(fileReplaced);
+        input.setAsyncParse(asyncParse);
         return input;
     }
 
-    private ByteArrayInputStream getInputStream(MultipartFile file) {
-        try {
-            return new ByteArrayInputStream(file.getBytes());
-        } catch (Exception e) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "读取文件失败: " + e.getMessage());
+    private void processDocument(AiDocument document, ParsedDocumentInput input) {
+        if (input.isAsyncParse()) {
+            processingJobService.submit(document, processingProperties.getStrategy());
+            return;
         }
+        saveChunks(document, input.getCombinedText());
     }
 
     private void fillDocument(AiDocument document, AiKnowledgeDocumentReqDto reqDto, ParsedDocumentInput input) {
@@ -348,6 +353,15 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
 
     private String getFileType(String fileName) {
         return DocumentFileType.resolveFileType(fileName);
+    }
+
+    private void validateParseStrategy(String fileType, DocumentParseStrategy strategy) {
+        if (strategy == DocumentParseStrategy.MINERU && !DocumentFileType.isMineruSupported(fileType)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "该文件类型不支持 MINERU 解析");
+        }
+        if (!strategy.usesMineru(fileType) && !DocumentFileType.isLegacySupported(fileType)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "图片附件需要使用 MINERU 或 AUTO 解析策略");
+        }
     }
 
     private String htmlToText(String html) {
@@ -445,6 +459,7 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
         private String storagePath;
         private String sourceType;
         private boolean fileReplaced;
+        private boolean asyncParse;
 
         public String getContentHtml() {
             return contentHtml;
@@ -516,6 +531,14 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
 
         public void setFileReplaced(boolean fileReplaced) {
             this.fileReplaced = fileReplaced;
+        }
+
+        public boolean isAsyncParse() {
+            return asyncParse;
+        }
+
+        public void setAsyncParse(boolean asyncParse) {
+            this.asyncParse = asyncParse;
         }
     }
 }

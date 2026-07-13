@@ -11,12 +11,15 @@ class DocumentFileTypeTest {
 
     @Test
     void resolveSupportedTypes() {
-        String[] fileTypes = {"txt", "md", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "pdf"};
+        String[] fileTypes = {"txt", "md", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "pdf",
+                "png", "jpg", "jpeg", "webp", "tiff"};
         for (String fileType : fileTypes) {
             assertEquals(fileType, DocumentFileType.resolveFileType("sample." + fileType));
             assertTrue(DocumentFileType.isSupported(fileType));
         }
         assertEquals("docx", DocumentFileType.resolveFileType("SAMPLE.DOCX"));
+        assertTrue(DocumentFileType.isLegacySupported("pdf"));
+        assertTrue(DocumentFileType.isMineruSupported("png"));
     }
 
     @Test

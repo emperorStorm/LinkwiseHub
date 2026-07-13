@@ -607,8 +607,8 @@ public class ChatServiceImpl implements ChatService {
             AiProvider provider) {
         List<AiProvider.ChatMessage> aiMessages = new ArrayList<>();
         aiMessages.add(new AiProvider.ChatMessage("system",
-            "你是OA办公系统的智能助手，名叫小秘。你的职责是：\n" +
-            "1. 回答用户关于OA系统功能的问题\n" +
+            "你是智链中枢的智能助手，名叫小秘。你的职责是：\n" +
+            "1. 回答用户关于智链中枢功能的问题\n" +
             "2. 提供菜谱和烹饪建议\n" +
             "3. 帮助用户处理办公事务\n" +
             "4. 回答各类办公相关问题\n" +
@@ -627,7 +627,7 @@ public class ChatServiceImpl implements ChatService {
         }
         List<AiProvider.ChatMessage> aiMessages = new ArrayList<>();
         aiMessages.add(new AiProvider.ChatMessage("system",
-            "你是OA办公系统的本地知识库问答助手。请只依据下方【本地知识库资料】回答用户问题，" +
+            "你是智链中枢的本地知识库问答助手。请只依据下方【本地知识库资料】回答用户问题，" +
             "不要使用互联网常识补充资料中没有的信息。资料不足时请说明本地知识库资料不足。"));
         aiMessages.add(new AiProvider.ChatMessage("system", buildLocalKnowledgeContext(results)));
 

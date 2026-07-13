@@ -8,6 +8,7 @@ import com.linkwisehub.modules.ai.document.entity.AiDocument;
 import com.linkwisehub.modules.ai.document.mapper.AiDocumentChunkMapper;
 import com.linkwisehub.modules.ai.document.mapper.AiDocumentMapper;
 import com.linkwisehub.modules.ai.document.service.DocumentQueryService;
+import com.linkwisehub.modules.ai.document.service.DocumentProcessingJobService;
 import com.linkwisehub.modules.ai.document.service.DocumentRagIndexService;
 import com.linkwisehub.modules.ai.document.service.DocumentStorageService;
 import org.springframework.stereotype.Service;
@@ -26,15 +27,18 @@ public class DocumentQueryServiceImpl implements DocumentQueryService {
     private final AiDocumentChunkMapper chunkMapper;
     private final DocumentStorageService documentStorageService;
     private final DocumentRagIndexService documentRagIndexService;
+    private final DocumentProcessingJobService processingJobService;
 
     public DocumentQueryServiceImpl(AiDocumentMapper documentMapper,
                                     AiDocumentChunkMapper chunkMapper,
                                     DocumentStorageService documentStorageService,
-                                    DocumentRagIndexService documentRagIndexService) {
+                                    DocumentRagIndexService documentRagIndexService,
+                                    DocumentProcessingJobService processingJobService) {
         this.documentMapper = documentMapper;
         this.chunkMapper = chunkMapper;
         this.documentStorageService = documentStorageService;
         this.documentRagIndexService = documentRagIndexService;
+        this.processingJobService = processingJobService;
     }
 
     @Override
@@ -59,6 +63,7 @@ public class DocumentQueryServiceImpl implements DocumentQueryService {
     @Transactional
     public void deleteDocument(Long id) {
         AiDocument document = getActiveDocument(id);
+        processingJobService.cancelActive(id);
         documentRagIndexService.deleteIndexByDocumentId(id);
         chunkMapper.updateStatusByDocumentId(id, 0);
         documentMapper.updateStatus(id, 0);

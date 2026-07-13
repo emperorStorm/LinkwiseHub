@@ -426,6 +426,7 @@ const previewLoading = ref(false)
 const onlyOfficeContainerId = 'onlyoffice-preview-container'
 const previewModalWidth = '75vw'
 let onlyOfficeEditor = null
+let documentPollingTimer = null
 
 const query = reactive({
   keyword: '',
@@ -1040,10 +1041,18 @@ onMounted(async () => {
   await loadCategories()
   await loadDocuments()
   window.addEventListener('resize', resizeOnlyOfficePreview)
+  documentPollingTimer = window.setInterval(() => {
+    if (documents.value.some(item => item.parseStatus === 'PROCESSING') && !documentLoading.value) {
+      loadDocuments()
+    }
+  }, 3000)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', resizeOnlyOfficePreview)
+  if (documentPollingTimer) {
+    window.clearInterval(documentPollingTimer)
+  }
   destroyOnlyOfficeEditor()
 })
 </script>

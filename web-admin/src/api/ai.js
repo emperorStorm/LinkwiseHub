@@ -15,7 +15,15 @@ const apiClient = axios.create({
 
 // 响应拦截器
 apiClient.interceptors.response.use(
-  response => response.data,
+  response => {
+    const result = response.data
+    if (result && typeof result.code === 'number' && result.code !== 200) {
+      const error = new Error(result.message || '请求失败')
+      error.response = { data: result }
+      return Promise.reject(error)
+    }
+    return result
+  },
   error => {
     console.error('AI API请求失败:', error)
     return Promise.reject(error)
@@ -62,14 +70,15 @@ export const getMessages = (conversationId) => {
 // ==================== 文档分片API ====================
 
 /**
- * 上传文档并触发同步解析
+ * 上传文档并按指定策略触发解析
  * @param {File} file - 可分片解析的文档文件
  * @returns {Promise<Object>} 上传解析结果
  */
-export const uploadDocument = (file) => {
+export const uploadDocument = (file, strategy = 'LEGACY') => {
   const formData = new FormData()
   formData.append('file', file)
   return apiClient.post('/documents/upload', formData, {
+    params: { strategy },
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 120000
   })
@@ -99,6 +108,14 @@ export const getDocumentChunks = (documentId) => {
  */
 export const deleteDocument = (documentId) => {
   return apiClient.delete(`/documents/${documentId}`)
+}
+
+export const getDocumentParseJob = (documentId) => {
+  return apiClient.get(`/documents/${documentId}/parse-job`)
+}
+
+export const retryDocumentParse = (documentId, strategy) => {
+  return apiClient.post(`/documents/${documentId}/parse/retry`, { strategy })
 }
 
 /**

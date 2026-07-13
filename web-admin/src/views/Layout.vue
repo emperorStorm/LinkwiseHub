@@ -17,7 +17,7 @@
           </svg>
         </div>
         <transition name="fade">
-          <span v-if="!collapsed" class="logo-text">LinkwiseHub</span>
+          <span v-if="!collapsed" class="logo-text">智链中枢</span>
         </transition>
       </div>
       
@@ -143,7 +143,7 @@ const menuMap = {
 }
 
 const currentTitle = computed(() => {
-  return menuMap[currentKey.value]?.title || 'LinkwiseHub'
+  return menuMap[currentKey.value]?.title || '智链中枢'
 })
 
 const currentMenuParent = computed(() => {

@@ -15,7 +15,7 @@
             <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
-        <h1 class="login-title">LinkwiseHub</h1>
+        <h1 class="login-title">智链中枢</h1>
         <p class="login-subtitle">企业级协同办公平台</p>
       </div>
 

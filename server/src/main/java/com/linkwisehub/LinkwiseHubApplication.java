@@ -6,6 +6,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SpringBootApplication
+@EnableScheduling
 @EnableConfigurationProperties({AiConfig.class, OnlyOfficeProperties.class})
 public class LinkwiseHubApplication {
 
@@ -31,7 +33,7 @@ public class LinkwiseHubApplication {
         String contextPath = environment.getProperty("server.servlet.context-path", "");
         
         logger.info("===============================================");
-        logger.info("LinkwiseHub启动成功！");
+        logger.info("智链中枢启动成功！");
         logger.info("===============================================");
         logger.info("访问地址: http://localhost:{}{}", port, contextPath);
         logger.info("API 文档: http://localhost:{}{}/swagger-ui.html", port, contextPath);

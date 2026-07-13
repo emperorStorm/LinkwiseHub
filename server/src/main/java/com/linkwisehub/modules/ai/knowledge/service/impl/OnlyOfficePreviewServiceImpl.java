@@ -86,8 +86,8 @@ public class OnlyOfficePreviewServiceImpl implements OnlyOfficePreviewService {
                 + "/api/ai/knowledge/onlyoffice/callback");
 
         Map<String, Object> user = new LinkedHashMap<>();
-        user.put("id", "oa-preview");
-        user.put("name", "OA 知识库");
+        user.put("id", "knowledge-preview");
+        user.put("name", "智链中枢知识库");
         editorConfig.put("user", user);
 
         Map<String, Object> config = new LinkedHashMap<>();

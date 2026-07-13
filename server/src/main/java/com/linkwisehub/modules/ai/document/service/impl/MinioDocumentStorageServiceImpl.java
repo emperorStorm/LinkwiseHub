@@ -157,6 +157,10 @@ public class MinioDocumentStorageServiceImpl implements DocumentStorageService {
             case DocumentFileType.XLS -> "application/vnd.ms-excel";
             case DocumentFileType.XLSX -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
             case DocumentFileType.PDF -> "application/pdf";
+            case DocumentFileType.PNG -> "image/png";
+            case DocumentFileType.JPG, DocumentFileType.JPEG -> "image/jpeg";
+            case DocumentFileType.WEBP -> "image/webp";
+            case DocumentFileType.TIFF -> "image/tiff";
             default -> "text/plain";
         };
     }

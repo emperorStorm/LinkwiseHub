@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram name="LinkwiseHub AI Architecture">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="client-tier" value="客户端层" style="swimlane;startSize=30;container=1;pointerEvents=0;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="web-admin" value="Web Admin&#xa;文档上传 / 状态轮询 / 失败重试" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="client-tier">
+          <mxGeometry x="440" y="45" width="360" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="business-tier" value="Spring Boot 业务服务层" style="swimlane;startSize=30;container=1;pointerEvents=0;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="1240" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="java-api" value="公开业务 API&#xa;鉴权 / 文档 / 知识库" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="business-tier">
+          <mxGeometry x="60" y="60" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="job-service" value="解析任务编排&#xa;LEGACY 本地 / MINERU 远程&#xa;状态真值 / 重试 / 乐观锁" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="business-tier">
+          <mxGeometry x="350" y="50" width="230" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="rag-service" value="RAG 索引与检索&#xa;块合并 / RRF 融合" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="business-tier">
+          <mxGeometry x="650" y="60" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="chat-service" value="智能问答&#xa;会话摘要 / SSE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="business-tier">
+          <mxGeometry x="950" y="60" width="230" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai-tier" value="Python AI 能力层" style="swimlane;startSize=30;container=1;pointerEvents=0;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="390" width="1240" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="ai-service" value="LinkwiseHub ai-service&#xa;服务鉴权 / 状态映射&#xa;结果标准化 / MinIO 落盘" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="ai-tier">
+          <mxGeometry x="300" y="50" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="mineru" value="MinerU 3.4.4&#xa;异步 Tasks API / Router&#xa;OCR / 表格 / 公式 / 版面" style="rounded=1;dashed=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="ai-tier">
+          <mxGeometry x="680" y="50" width="260" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="resource-tier" value="数据与模型资源层" style="swimlane;startSize=30;container=1;pointerEvents=0;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="610" width="1240" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="mysql" value="MySQL&#xa;业务与任务真值" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="resource-tier">
+          <mxGeometry x="40" y="70" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="minio" value="MinIO&#xa;源文件 / 标准化结果" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="resource-tier">
+          <mxGeometry x="240" y="70" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="qdrant" value="Qdrant&#xa;向量索引" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="resource-tier">
+          <mxGeometry x="450" y="70" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="elasticsearch" value="Elasticsearch&#xa;BM25 稀疏索引" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="resource-tier">
+          <mxGeometry x="640" y="70" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ollama" value="Ollama&#xa;bge-m3 / 本地模型" style="rounded=1;dashed=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="resource-tier">
+          <mxGeometry x="850" y="70" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="llm" value="外部 LLM&#xa;DeepSeek / 百炼 / MiniMax" style="rounded=1;dashed=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="resource-tier">
+          <mxGeometry x="1040" y="70" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" value="HTTPS / REST" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="web-admin" target="java-api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="150" />
+              <mxPoint x="215" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" value="创建任务" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="java-api" target="job-service">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="MinerU 内部 REST" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;flowAnimation=1;" edge="1" parent="1" source="job-service" target="ai-service">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="505" y="370" />
+              <mxPoint x="470" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" value="异步任务" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;flowAnimation=1;" edge="1" parent="1" source="ai-service" target="mineru">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="状态与结果" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;exitX=0;exitY=0.75;entryX=1;entryY=0.75;" edge="1" parent="1" source="mineru" target="ai-service">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="job-service" target="mysql">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="240" y="360" />
+              <mxPoint x="240" y="600" />
+              <mxPoint x="155" y="600" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;entryX=0.25;entryY=0;" edge="1" parent="1" source="java-api" target="minio">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="280" y="370" />
+              <mxPoint x="280" y="590" />
+              <mxPoint x="320" y="590" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=1;entryX=0.75;entryY=0;" edge="1" parent="1" source="ai-service" target="minio">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" value="索引接续" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="job-service" target="rag-service">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="rag-service" target="qdrant">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="620" y="370" />
+              <mxPoint x="620" y="590" />
+              <mxPoint x="560" y="590" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="rag-service" target="elasticsearch">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="370" />
+              <mxPoint x="650" y="590" />
+              <mxPoint x="760" y="590" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="rag-service" target="ollama">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1010" y="370" />
+              <mxPoint x="1010" y="590" />
+              <mxPoint x="965" y="590" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="chat-service" target="llm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" value="知识检索" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="chat-service" target="rag-service">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,22 @@
+# LinkwiseHub AI Service
+
+LinkwiseHub 内部 AI 能力服务。首期封装 MinerU 3.4.4 的异步文档解析接口，负责服务鉴权、MinIO 文件读取、解析结果标准化和结果回写，不直接访问 LinkwiseHub MySQL、Qdrant 或 Elasticsearch。
+
+## 本地运行
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+AI 服务默认监听 `8090`，MinerU API 默认监听 `8000`。生产环境必须替换 `.env` 中的服务令牌和 MinIO 凭据。
+
+## 接口
+
+- `POST /internal/v1/document-parses`
+- `GET /internal/v1/document-parses/{task_id}`
+- `POST /internal/v1/document-parses/{task_id}/materialize`
+- `GET /health/live`
+- `GET /health/ready`
+
+内部接口要求请求头 `X-Service-Token`，并支持使用 `X-Request-Id` 串联 Java、Python 和 MinerU 日志。

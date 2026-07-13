@@ -5,4 +5,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface DocumentUploadService {
     AiDocumentUploadRespDto uploadAndParse(MultipartFile file);
+
+    AiDocumentUploadRespDto uploadAndParse(MultipartFile file, String strategy);
 }

@@ -58,7 +58,7 @@ public class DocumentParseServiceImpl implements DocumentParseService {
 
     private String normalizeFileType(String fileType) {
         String safeType = fileType == null ? "" : fileType.toLowerCase(Locale.ROOT);
-        if (!DocumentFileType.isSupported(safeType)) {
+        if (!DocumentFileType.isLegacySupported(safeType)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, DocumentFileType.getSupportedMessage());
         }
         return safeType;

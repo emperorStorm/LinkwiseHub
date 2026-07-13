@@ -23,11 +23,26 @@ public final class DocumentFileType {
     public static final String XLS = "xls";
     public static final String XLSX = "xlsx";
     public static final String PDF = "pdf";
+    public static final String PNG = "png";
+    public static final String JPG = "jpg";
+    public static final String JPEG = "jpeg";
+    public static final String WEBP = "webp";
+    public static final String TIFF = "tiff";
 
-    private static final Set<String> SUPPORTED_TYPES = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
+    private static final Set<String> LEGACY_TYPES = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
             TXT, MD, DOC, DOCX, PPT, PPTX, XLS, XLSX, PDF
     )));
-    private static final String SUPPORTED_MESSAGE = "支持 txt、md、doc、docx、ppt、pptx、xls、xlsx、pdf 文件";
+    private static final Set<String> MINERU_TYPES = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
+            PDF, DOCX, PPTX, XLSX, PNG, JPG, JPEG, WEBP, TIFF
+    )));
+    private static final Set<String> SUPPORTED_TYPES;
+    private static final String SUPPORTED_MESSAGE = "支持 txt、md、doc、docx、ppt、pptx、xls、xlsx、pdf 和常见图片文件";
+
+    static {
+        LinkedHashSet<String> supportedTypes = new LinkedHashSet<>(LEGACY_TYPES);
+        supportedTypes.addAll(MINERU_TYPES);
+        SUPPORTED_TYPES = Collections.unmodifiableSet(supportedTypes);
+    }
 
     private DocumentFileType() {
     }
@@ -45,6 +60,14 @@ public final class DocumentFileType {
 
     public static boolean isSupported(String fileType) {
         return fileType != null && SUPPORTED_TYPES.contains(fileType.toLowerCase(Locale.ROOT));
+    }
+
+    public static boolean isLegacySupported(String fileType) {
+        return fileType != null && LEGACY_TYPES.contains(fileType.toLowerCase(Locale.ROOT));
+    }
+
+    public static boolean isMineruSupported(String fileType) {
+        return fileType != null && MINERU_TYPES.contains(fileType.toLowerCase(Locale.ROOT));
     }
 
     public static String getSupportedMessage() {

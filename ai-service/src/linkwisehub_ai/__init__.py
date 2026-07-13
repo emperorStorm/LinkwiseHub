@@ -1,0 +1,1 @@
+"""LinkwiseHub AI capability service."""
