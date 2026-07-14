@@ -164,7 +164,6 @@ export const getKnowledgeDocumentDetail = (id) => {
 export const createKnowledgeDocument = (data) => {
   const formData = buildKnowledgeDocumentFormData(data)
   return apiClient.post('/knowledge/documents', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 120000
   })
 }
@@ -172,7 +171,6 @@ export const createKnowledgeDocument = (data) => {
 export const updateKnowledgeDocument = (id, data) => {
   const formData = buildKnowledgeDocumentFormData(data)
   return apiClient.put(`/knowledge/documents/${id}`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 120000
   })
 }

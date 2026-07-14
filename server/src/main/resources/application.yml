@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: ${MYSQL_URL:jdbc:mysql://10.211.55.6:3306/lwh_system?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    url: ${MYSQL_URL:jdbc:mysql://10.211.55.6:3306/lwh_system?useUnicode=true&characterEncoding=utf-8&useSSL=false&connectionTimeZone=Asia/Shanghai&forceConnectionTimeZoneToSession=true&allowPublicKeyRetrieval=true}
     username: ${MYSQL_USERNAME:admin}
     password: ${MYSQL_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
