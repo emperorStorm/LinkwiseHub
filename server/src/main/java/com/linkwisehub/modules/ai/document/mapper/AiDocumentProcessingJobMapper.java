@@ -15,6 +15,8 @@ public interface AiDocumentProcessingJobMapper {
 
     AiDocumentProcessingJob selectLatestByDocumentId(@Param("documentId") Long documentId);
 
+    List<AiDocumentProcessingJob> selectLatestByDocumentIds(@Param("documentIds") List<Long> documentIds);
+
     List<AiDocumentProcessingJob> selectPollable(@Param("now") LocalDateTime now, @Param("limit") Integer limit);
 
     int claim(@Param("id") Long id,
@@ -40,7 +42,11 @@ public interface AiDocumentProcessingJobMapper {
     int markRunning(@Param("id") Long id,
                     @Param("startedAt") LocalDateTime startedAt);
 
+    int startMaterializing(@Param("id") Long id,
+                          @Param("workerId") String workerId);
+
     int updateArtifacts(@Param("id") Long id,
+                        @Param("workerId") String workerId,
                         @Param("resultBucket") String resultBucket,
                         @Param("manifestPath") String manifestPath,
                         @Param("markdownPath") String markdownPath,

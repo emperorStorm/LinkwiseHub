@@ -137,9 +137,23 @@
               <a-tag :color="getSourceColor(record.sourceType)">{{ getSourceText(record.sourceType) }}</a-tag>
             </template>
             <template v-else-if="column.key === 'parseStatus'">
-              <a-tag :color="record.parseStatus === 'SUCCESS' ? 'green' : record.parseStatus === 'FAILED' ? 'red' : 'blue'">
-                {{ getParseText(record.parseStatus) }}
-              </a-tag>
+              <div class="parse-status-cell">
+                <a-tag :color="record.parseStatus === 'SUCCESS' ? 'green' : record.parseStatus === 'FAILED' ? 'red' : 'blue'">
+                  {{ getParseText(record.parseStatus) }}
+                </a-tag>
+                <span class="parse-engine">{{ getParserText(record) }}</span>
+                <a-progress
+                  v-if="record.parseStatus === 'PROCESSING'"
+                  :percent="record.parseProgress || 0"
+                  :show-info="false"
+                  size="small"
+                />
+              </div>
+            </template>
+            <template v-else-if="column.key === 'parseError'">
+              <a-tooltip :title="getParseError(record)">
+                <span class="parse-error">{{ getParseError(record) || '-' }}</span>
+              </a-tooltip>
             </template>
             <template v-else-if="column.key === 'fileSize'">
               {{ formatFileSize(record.fileSize) }}
@@ -159,6 +173,20 @@
                     <edit-outlined />
                   </a-button>
                 </a-tooltip>
+                <a-dropdown v-if="record.parseStatus === 'FAILED'" trigger="click">
+                  <a-tooltip title="重新分析">
+                    <a-button size="small" type="text" class="action-icon-btn" :loading="retryingDocumentId === record.id">
+                      <redo-outlined />
+                    </a-button>
+                  </a-tooltip>
+                  <template #overlay>
+                    <a-menu @click="({ key }) => retryKnowledgeDocument(record, key)">
+                      <a-menu-item key="AUTO">自动识别</a-menu-item>
+                      <a-menu-item key="MINERU" :disabled="!isMineruAnalysisFile(record.fileType)">MinerU</a-menu-item>
+                      <a-menu-item key="LEGACY" :disabled="!isLegacyAnalysisFile(record.fileType)">兼容解析</a-menu-item>
+                    </a-menu>
+                  </template>
+                </a-dropdown>
                 <a-popconfirm title="确定删除该知识文档吗？" ok-text="删除" cancel-text="取消" @confirm="removeDocument(record)">
                   <a-button size="small" type="text" danger class="action-icon-btn">
                     <delete-outlined />
@@ -226,7 +254,7 @@
             @input="syncEditorContent"
           />
         </a-form-item>
-        <a-form-item label="文件" :extra="`支持 ${DOCUMENT_SUPPORTED_TEXT}，最大 10MB；编辑时不选新文件则沿用原文件。`">
+        <a-form-item label="文件" extra="编辑时不选新文件则沿用原文件。">
           <a-upload
             :before-upload="beforeFileSelect"
             :accept="DOCUMENT_ACCEPT"
@@ -238,6 +266,7 @@
               选择文件
             </a-button>
           </a-upload>
+          <div class="file-analysis-hint">{{ DOCUMENT_ANALYSIS_TEXT }}</div>
           <div v-if="currentAttachment" class="form-attachment-row">
             <button type="button" class="form-attachment-title" @click="previewFormAttachment">
               <paper-clip-outlined />
@@ -317,6 +346,15 @@
             </div>
           </section>
 
+          <section v-if="detailDocument.parseStatus !== 'SUCCESS' || getParseError(detailDocument)" class="detail-parse-alert">
+            <a-alert
+              :type="detailDocument.parseStatus === 'FAILED' ? 'error' : 'info'"
+              :message="getParserText(detailDocument)"
+              :description="getDetailParseDescription(detailDocument)"
+              show-icon
+            />
+          </section>
+
           <section class="detail-section">
             <div class="section-title">附件</div>
             <div v-if="detailDocument.fileName" class="attachment-box">
@@ -386,6 +424,7 @@ import {
   PlusCircleOutlined,
   PlusOutlined,
   ReloadOutlined,
+  RedoOutlined,
   UnorderedListOutlined,
   UploadOutlined
 } from '@ant-design/icons-vue'
@@ -399,11 +438,18 @@ import {
   getKnowledgeDocumentDetail,
   getKnowledgeDocumentPreviewConfig,
   getKnowledgeDocuments,
+  retryDocumentParse,
   updateKnowledgeCategory,
   updateKnowledgeDocument,
   updateKnowledgePublishStatus
 } from '@/api/ai'
-import { DOCUMENT_ACCEPT, DOCUMENT_ALLOWED_TYPES, DOCUMENT_SUPPORTED_TEXT } from '@/utils/documentFileTypes'
+import {
+  DOCUMENT_ACCEPT,
+  DOCUMENT_ALLOWED_TYPES,
+  DOCUMENT_ANALYSIS_TEXT,
+  DOCUMENT_SUPPORTED_TEXT,
+  MINERU_ANALYSIS_TYPES
+} from '@/utils/documentFileTypes'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024
 const router = useRouter()
@@ -418,6 +464,7 @@ const categoryLoading = ref(false)
 const categorySaving = ref(false)
 const documentLoading = ref(false)
 const documentSaving = ref(false)
+const retryingDocumentId = ref(null)
 const documentModalVisible = ref(false)
 const editorRef = ref(null)
 const fileList = ref([])
@@ -471,10 +518,11 @@ const documentColumns = [
   { title: '分类', dataIndex: 'categoryName', key: 'categoryName', width: 120 },
   { title: '来源', dataIndex: 'sourceType', key: 'sourceType', width: 90 },
   { title: '状态', dataIndex: 'publishStatus', key: 'publishStatus', width: 120 },
-  { title: '解析', dataIndex: 'parseStatus', key: 'parseStatus', width: 100 },
+  { title: '解析', dataIndex: 'parseStatus', key: 'parseStatus', width: 150 },
+  { title: '识别说明', key: 'parseError', width: 200, ellipsis: true },
   { title: '大小', dataIndex: 'fileSize', key: 'fileSize', width: 100 },
   { title: '更新时间', dataIndex: 'updateTime', key: 'updateTime', width: 170 },
-  { title: '操作', key: 'action', width: 116, fixed: 'right' }
+  { title: '操作', key: 'action', width: 146, fixed: 'right' }
 ]
 
 const categoryModalTitle = computed(() => {
@@ -809,6 +857,22 @@ const changePublishStatus = async (record, checked) => {
   }
 }
 
+const retryKnowledgeDocument = async (record, strategy) => {
+  retryingDocumentId.value = record.id
+  try {
+    await retryDocumentParse(record.id, strategy)
+    message.success('文档已重新提交分析')
+    await loadDocuments()
+    if (detailDocument.value?.id === record.id) {
+      await openDocumentDetail(record)
+    }
+  } catch (error) {
+    message.error(error.response?.data?.message || error.message || '重新分析失败')
+  } finally {
+    retryingDocumentId.value = null
+  }
+}
+
 const openDocumentDetail = async (record) => {
   detailDrawer.visible = true
   detailDrawer.loading = true
@@ -1037,6 +1101,31 @@ const getParseText = (status) => {
   return map[status] || status || '-'
 }
 
+const isMineruAnalysisFile = (fileType) => MINERU_ANALYSIS_TYPES.includes((fileType || '').toLowerCase())
+
+const isLegacyAnalysisFile = (fileType) => ['txt', 'md', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'pdf'].includes((fileType || '').toLowerCase())
+
+const getParserText = (record) => {
+  if (!record?.fileName) return '正文索引'
+  if (record.parseEngine === 'MINERU') return 'MinerU 智能识别'
+  if (record.parseEngine === 'LEGACY') return '兼容解析'
+  if (record.parseEngine === 'AUTO') {
+    return isMineruAnalysisFile(record.fileType) ? 'MinerU 智能识别' : '兼容解析'
+  }
+  return isMineruAnalysisFile(record.fileType) ? '自动识别' : '兼容解析'
+}
+
+const getParseError = (record) => record?.errorMessage || record?.parseJobErrorMessage || ''
+
+const getDetailParseDescription = (record) => {
+  const errorMessage = getParseError(record)
+  if (errorMessage) return errorMessage
+  if (record?.parseStatus === 'PROCESSING') {
+    return `当前进度 ${record.parseProgress || 0}%${record.parseRetryCount ? `，已重试 ${record.parseRetryCount} 次` : ''}`
+  }
+  return '附件内容正在按文件类型建立检索索引。'
+}
+
 onMounted(async () => {
   await loadCategories()
   await loadDocuments()
@@ -1251,6 +1340,35 @@ onBeforeUnmount(() => {
   padding: 0;
 }
 
+.parse-status-cell {
+  display: grid;
+  gap: 3px;
+  min-width: 122px;
+}
+
+.parse-engine {
+  overflow: hidden;
+  color: #65758a;
+  font-size: 12px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.parse-status-cell :deep(.ant-progress) {
+  margin: 0;
+}
+
+.parse-error {
+  display: inline-block;
+  max-width: 180px;
+  overflow: hidden;
+  color: #bf5b2b;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
 .doc-title-cell {
   display: flex;
   flex-direction: column;
@@ -1277,6 +1395,17 @@ onBeforeUnmount(() => {
 
 .document-form :deep(.ant-form-item) {
   margin-bottom: 16px;
+}
+
+.file-analysis-hint {
+  margin-top: 8px;
+  color: #637083;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.detail-parse-alert {
+  margin-top: 14px;
 }
 
 .editor-toolbar {

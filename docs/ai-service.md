@@ -21,14 +21,14 @@ MinerU 是 OCR、版面分析和结构化文档解析引擎，不等同于智能
 - `MINERU`：PDF、DOCX、PPTX、XLSX 和常见图片使用 MinerU；不支持的格式直接拒绝。
 - `AUTO`：MinerU支持的现代格式交给 MinerU，TXT、MD、DOC、XLS 使用旧解析器。
 
-默认值是 `LEGACY`，已有文档不会自动重解析。MinerU失败不会静默切换解析器，达到最大重试次数后可在页面显式选择策略重试。
+默认值是 `AUTO`，已有文档不会自动重解析。PDF、DOCX、PPTX、XLSX 和常见图片使用 MinerU；TXT、MD、DOC、PPT、XLS 使用兼容解析。MinerU失败不会静默切换解析器，达到最大重试次数后可在页面显式选择策略重试。
 
 ## 配置
 
 Java 环境变量：
 
 ```text
-AI_DOCUMENT_PARSE_STRATEGY=LEGACY
+AI_DOCUMENT_PARSE_STRATEGY=AUTO
 AI_SERVICE_BASE_URL=http://127.0.0.1:8090
 AI_SERVICE_TOKEN=<shared-service-token>
 AI_DOCUMENT_SCHEDULER_ENABLED=true

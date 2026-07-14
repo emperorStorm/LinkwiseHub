@@ -3,7 +3,7 @@
     <div class="page-header">
       <div>
         <h2 class="page-title">文档分片</h2>
-        <p class="page-subtitle">上传后自动完成 RAG 切片与向量索引，可预览 Chunk。</p>
+        <p class="page-subtitle">{{ DOCUMENT_ANALYSIS_TEXT }}</p>
       </div>
       <div class="header-actions">
         <a-segmented v-model:value="parseStrategy" :options="parseStrategyOptions" />
@@ -237,6 +237,7 @@ import {
 } from '@/api/ai'
 import {
   DOCUMENT_ACCEPT,
+  DOCUMENT_ANALYSIS_TEXT,
   DOCUMENT_ALLOWED_TYPES,
   DOCUMENT_IMAGE_TYPES,
   DOCUMENT_SUPPORTED_TEXT
@@ -251,7 +252,7 @@ const currentDocument = ref(null)
 const chunkModalVisible = ref(false)
 const uploading = ref(false)
 const retryingDocumentId = ref(null)
-const parseStrategy = ref('LEGACY')
+const parseStrategy = ref('AUTO')
 const jobProgress = ref({})
 const documentLoading = ref(false)
 const chunkLoading = ref(false)

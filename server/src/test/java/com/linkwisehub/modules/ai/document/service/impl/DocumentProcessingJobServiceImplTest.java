@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -178,6 +179,27 @@ class DocumentProcessingJobServiceImplTest {
         assertThrows(RuntimeException.class, () -> service.retry(1L, DocumentParseStrategy.LEGACY));
 
         verify(documentMapper, never()).updateParseResult(any(), any(), any(), any());
+    }
+
+    @Test
+    void batchLookupReturnsLatestTaskSummaryByDocumentId() {
+        AiDocumentProcessingJob first = new AiDocumentProcessingJob();
+        first.setDocumentId(1L);
+        first.setParseEngine("AUTO");
+        first.setStatus("RUNNING");
+        first.setProgress(50);
+        AiDocumentProcessingJob second = new AiDocumentProcessingJob();
+        second.setDocumentId(2L);
+        second.setParseEngine("LEGACY");
+        second.setStatus("SUCCESS");
+        second.setProgress(100);
+        when(jobMapper.selectLatestByDocumentIds(List.of(1L, 2L))).thenReturn(List.of(first, second));
+
+        Map<Long, String> statuses = service.getLatestByDocumentIds(List.of(1L, 2L)).entrySet().stream()
+                .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getStatus()));
+
+        assertEquals(Map.of(1L, "RUNNING", 2L, "SUCCESS"), statuses);
+        verify(jobMapper).selectLatestByDocumentIds(List.of(1L, 2L));
     }
 
     private AiDocument document() {

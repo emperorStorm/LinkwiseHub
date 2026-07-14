@@ -74,7 +74,7 @@ export const getMessages = (conversationId) => {
  * @param {File} file - 可分片解析的文档文件
  * @returns {Promise<Object>} 上传解析结果
  */
-export const uploadDocument = (file, strategy = 'LEGACY') => {
+export const uploadDocument = (file, strategy = 'AUTO') => {
   const formData = new FormData()
   formData.append('file', file)
   return apiClient.post('/documents/upload', formData, {

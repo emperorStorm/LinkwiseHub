@@ -74,7 +74,7 @@ Password: 123456
 - Mobile and desktop clients are not included in the first version.
 - Runtime credentials and service addresses are injected through environment variables; no production secrets belong in the repository.
 - External services such as MySQL, Redis, MinIO, OnlyOffice, Ollama, Qdrant, Elasticsearch, and Aliyun outbound bot must be available separately.
-- The default parser remains `LEGACY`; set `AI_DOCUMENT_PARSE_STRATEGY=AUTO` only after the AI service and MinerU health checks pass.
+- New documents default to `AUTO`: PDF, modern Office files, and images use MinerU; TXT, Markdown, and legacy Office files use the Java compatibility parser. Configure the AI service, MinIO, and shared service token before enabling uploads.
 
 ## Technology Stack
 

@@ -1,9 +1,11 @@
 package com.linkwisehub.modules.ai.document.enums;
 
 import com.linkwisehub.common.exception.BusinessException;
+import com.linkwisehub.config.AiDocumentProcessingProperties;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -21,5 +23,10 @@ class DocumentParseStrategyTest {
     @Test
     void resolveRejectsUnknownStrategy() {
         assertThrows(BusinessException.class, () -> DocumentParseStrategy.resolve("unknown", DocumentParseStrategy.LEGACY));
+    }
+
+    @Test
+    void defaultStrategyUsesAutoRouting() {
+        assertEquals(DocumentParseStrategy.AUTO, new AiDocumentProcessingProperties().getStrategy());
     }
 }

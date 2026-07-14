@@ -44,6 +44,20 @@
         SELECT * FROM lwh_ai_processing_job WHERE document_id = #{documentId} ORDER BY id DESC LIMIT 1
     </select>
 
+    <select id="selectLatestByDocumentIds" resultMap="JobResultMap">
+        SELECT job.*
+        FROM lwh_ai_processing_job job
+        INNER JOIN (
+            SELECT document_id, MAX(id) AS id
+            FROM lwh_ai_processing_job
+            WHERE document_id IN
+            <foreach collection="documentIds" item="documentId" open="(" separator="," close=")">
+                #{documentId}
+            </foreach>
+            GROUP BY document_id
+        ) latest ON latest.id = job.id
+    </select>
+
     <select id="selectPollable" resultMap="JobResultMap">
         SELECT *
         FROM lwh_ai_processing_job
@@ -85,11 +99,21 @@
         WHERE id = #{id}
     </update>
 
+    <update id="startMaterializing">
+        UPDATE lwh_ai_processing_job
+        SET status = 'MATERIALIZING', progress = 90
+        WHERE id = #{id}
+          AND worker_id = #{workerId}
+          AND status IN ('PENDING', 'SUBMITTED', 'RUNNING', 'RETRY_WAIT')
+    </update>
+
     <update id="updateArtifacts">
         UPDATE lwh_ai_processing_job
         SET result_bucket = #{resultBucket}, manifest_path = #{manifestPath}, markdown_path = #{markdownPath},
             blocks_path = #{blocksPath}, status = 'MATERIALIZING'
         WHERE id = #{id}
+          AND worker_id = #{workerId}
+          AND status = 'MATERIALIZING'
     </update>
 
     <update id="finish">

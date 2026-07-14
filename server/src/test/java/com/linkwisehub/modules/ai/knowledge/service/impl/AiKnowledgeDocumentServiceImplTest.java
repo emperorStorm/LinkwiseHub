@@ -6,6 +6,7 @@ import com.linkwisehub.modules.ai.document.dto.DocumentStorageResult;
 import com.linkwisehub.modules.ai.document.entity.AiDocument;
 import com.linkwisehub.modules.ai.document.entity.AiDocumentChunk;
 import com.linkwisehub.modules.ai.document.entity.AiDocumentSplitConfig;
+import com.linkwisehub.modules.ai.document.enums.DocumentParseStrategy;
 import com.linkwisehub.modules.ai.document.mapper.AiDocumentChunkMapper;
 import com.linkwisehub.modules.ai.document.mapper.AiDocumentMapper;
 import com.linkwisehub.modules.ai.document.service.DocumentProcessingJobService;
@@ -25,6 +26,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -80,6 +82,7 @@ class AiKnowledgeDocumentServiceImplTest {
         service.create(reqDto(""), file);
 
         verify(processingJobService).submit(any(AiDocument.class), any());
+        verify(processingJobService).submit(any(AiDocument.class), eq(DocumentParseStrategy.AUTO));
         verify(documentRagIndexService, never()).index(any());
     }
 

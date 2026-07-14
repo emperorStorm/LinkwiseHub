@@ -16,6 +16,11 @@ public class AiKnowledgeDocumentRespDto {
     private String parseStatus;
     private Integer chunkCount;
     private String errorMessage;
+    private String parseEngine;
+    private String parseJobStatus;
+    private Integer parseProgress;
+    private Integer parseRetryCount;
+    private String parseJobErrorMessage;
     private String contentHtml;
     private String publishStatus;
     private String sourceType;

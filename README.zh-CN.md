@@ -74,7 +74,7 @@ docker compose up --build
 - 首版不包含移动端和桌面客户端。
 - 运行凭据和服务地址通过环境变量注入，仓库不保存生产密钥。
 - MySQL、Redis、MinIO、OnlyOffice、Ollama、Qdrant、Elasticsearch、阿里云外呼等外部服务需要单独可用。
-- 默认解析策略仍为 `LEGACY`；AI 服务和 MinerU 健康检查通过后，再配置 `AI_DOCUMENT_PARSE_STRATEGY=AUTO`。
+- 新上传文档默认使用 `AUTO`：PDF、现代 Office 文档和图片使用 MinerU；TXT、Markdown 和旧版 Office 文档使用 Java 兼容解析。启用上传前需完成 AI 服务、MinIO 和共享服务令牌配置。
 
 ## 技术栈
 

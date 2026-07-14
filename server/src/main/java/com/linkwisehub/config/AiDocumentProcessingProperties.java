@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "ai.document.processing")
 public class AiDocumentProcessingProperties {
 
-    private DocumentParseStrategy strategy = DocumentParseStrategy.LEGACY;
+    private DocumentParseStrategy strategy = DocumentParseStrategy.AUTO;
     private String serviceBaseUrl = "http://127.0.0.1:8090";
     private String serviceToken = "";
     private boolean schedulerEnabled = true;

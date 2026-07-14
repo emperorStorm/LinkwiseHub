@@ -32,8 +32,10 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -102,6 +104,21 @@ public class DocumentProcessingJobServiceImpl implements DocumentProcessingJobSe
     public DocumentParseJobRespDto getLatest(Long documentId) {
         ensureActiveDocument(documentId);
         return toRespDto(jobMapper.selectLatestByDocumentId(documentId));
+    }
+
+    @Override
+    public Map<Long, DocumentParseJobRespDto> getLatestByDocumentIds(List<Long> documentIds) {
+        if (documentIds == null || documentIds.isEmpty()) {
+            return Map.of();
+        }
+        List<AiDocumentProcessingJob> jobs = jobMapper.selectLatestByDocumentIds(documentIds);
+        if (jobs == null || jobs.isEmpty()) {
+            return Map.of();
+        }
+        return jobs.stream()
+                .filter(job -> job.getDocumentId() != null)
+                .collect(Collectors.toMap(AiDocumentProcessingJob::getDocumentId,
+                        this::toRespDto, (left, right) -> left));
     }
 
     @Override
@@ -218,11 +235,16 @@ public class DocumentProcessingJobServiceImpl implements DocumentProcessingJobSe
     }
 
     private void materializeAndIndex(AiDocumentProcessingJob job, AiDocument document) {
+        if (jobMapper.startMaterializing(job.getId(), workerId) == 0) {
+            return;
+        }
         AiDocumentProcessingClient.MaterializedResult result = processingClient.materialize(
                 job.getProviderTaskId(), document.getId());
         AiDocumentProcessingClient.Artifacts artifacts = result.artifacts();
-        jobMapper.updateArtifacts(job.getId(), artifacts.bucket(), artifacts.manifestObject(),
-                artifacts.markdownObject(), artifacts.blocksObject());
+        if (jobMapper.updateArtifacts(job.getId(), workerId, artifacts.bucket(), artifacts.manifestObject(),
+                artifacts.markdownObject(), artifacts.blocksObject()) == 0) {
+            return;
+        }
         List<ParsedDocumentBlock> blocks = readBlocks(artifacts.bucket(), artifacts.blocksObject());
         appendKnowledgeContent(document, blocks);
         DocumentRagIndexRequest request = new DocumentRagIndexRequest();

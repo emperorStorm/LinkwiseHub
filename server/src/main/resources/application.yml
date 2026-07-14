@@ -89,8 +89,8 @@ ai:
   document:
     bucket-name: knowledge-base
     processing:
-      # 首次部署保持旧解析链；验证 MinerU 后可切换为 AUTO。
-      strategy: ${AI_DOCUMENT_PARSE_STRATEGY:LEGACY}
+      # 自动选择：现代 Office、PDF 和图片使用 MinerU，其余支持格式使用兼容解析。
+      strategy: ${AI_DOCUMENT_PARSE_STRATEGY:AUTO}
       service-base-url: ${AI_SERVICE_BASE_URL:http://127.0.0.1:8090}
       service-token: ${AI_SERVICE_TOKEN:}
       scheduler-enabled: ${AI_DOCUMENT_SCHEDULER_ENABLED:true}

@@ -55,7 +55,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-AI 服务默认地址为 `http://localhost:8090`，MinerU 虚拟机地址为 `http://10.211.55.6:8000`。确认以下接口可用后，再把 Java 解析策略切换为 `AUTO`：
+AI 服务默认地址为 `http://localhost:8090`，MinerU 虚拟机地址为 `http://10.211.55.6:8000`。新附件默认使用 `AUTO`，在启用上传前确认以下接口可用：
 
 ```text
 http://localhost:8090/health/live

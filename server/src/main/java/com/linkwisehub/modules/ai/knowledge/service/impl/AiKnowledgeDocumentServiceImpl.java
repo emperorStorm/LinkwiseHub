@@ -4,6 +4,7 @@ import com.linkwisehub.common.ErrorCode;
 import com.linkwisehub.common.exception.BusinessException;
 import com.linkwisehub.config.AiDocumentProcessingProperties;
 import com.linkwisehub.modules.ai.document.dto.AiDocumentChunkRespDto;
+import com.linkwisehub.modules.ai.document.dto.DocumentParseJobRespDto;
 import com.linkwisehub.modules.ai.document.dto.DocumentRagIndexRequest;
 import com.linkwisehub.modules.ai.document.dto.DocumentStorageResult;
 import com.linkwisehub.modules.ai.document.entity.AiDocument;
@@ -87,15 +88,18 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
         String safeStatus = normalizePublishStatus(publishStatus, false);
         Map<Long, String> categoryNameMap = categoryMapper.selectAll().stream()
                 .collect(Collectors.toMap(AiKnowledgeCategory::getId, AiKnowledgeCategory::getName, (left, right) -> left));
-        return documentMapper.selectKnowledgeDocuments(categoryIds, trimToNull(keyword), safeStatus).stream()
-                .map(document -> toRespDto(document, categoryNameMap.get(document.getCategoryId())))
+        List<AiDocument> documents = documentMapper.selectKnowledgeDocuments(categoryIds, trimToNull(keyword), safeStatus);
+        Map<Long, DocumentParseJobRespDto> parseJobs = processingJobService.getLatestByDocumentIds(
+                documents.stream().map(AiDocument::getId).collect(Collectors.toList()));
+        return documents.stream()
+                .map(document -> toRespDto(document, categoryNameMap.get(document.getCategoryId()), parseJobs.get(document.getId())))
                 .collect(Collectors.toList());
     }
 
     @Override
     public AiKnowledgeDocumentRespDto getDocument(Long id) {
         AiDocument document = ensureActiveKnowledgeDocument(id);
-        return toRespDto(document, getCategoryName(document.getCategoryId()));
+        return toRespDto(document, getCategoryName(document.getCategoryId()), processingJobService.getLatest(document.getId()));
     }
 
     @Override
@@ -109,7 +113,8 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
             document.setStatus(1);
             documentMapper.insert(document);
             processDocument(document, parsedInput);
-            return toRespDto(documentMapper.selectById(document.getId()), getCategoryName(document.getCategoryId()));
+            return toRespDto(documentMapper.selectById(document.getId()), getCategoryName(document.getCategoryId()),
+                    processingJobService.getLatest(document.getId()));
         } catch (RuntimeException e) {
             documentRagIndexService.deleteIndexByDocumentId(document.getId());
             if (parsedInput.isFileReplaced()) {
@@ -144,7 +149,8 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
             }
             throw e;
         }
-        return toRespDto(documentMapper.selectById(id), getCategoryName(reqDto.getCategoryId()));
+        return toRespDto(documentMapper.selectById(id), getCategoryName(reqDto.getCategoryId()),
+                processingJobService.getLatest(id));
     }
 
     @Override
@@ -155,7 +161,7 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
         documentMapper.updatePublishStatus(id, safeStatus);
         documentSparseIndexService.updatePublishStatus(id, safeStatus);
         document.setPublishStatus(safeStatus);
-        return toRespDto(document, getCategoryName(document.getCategoryId()));
+        return toRespDto(document, getCategoryName(document.getCategoryId()), processingJobService.getLatest(id));
     }
 
     @Override
@@ -169,7 +175,7 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
     public AiKnowledgeDocumentRespDto deleteAttachment(Long id) {
         AiDocument document = ensureActiveKnowledgeDocument(id);
         if (!hasStoredFile(document)) {
-            return toRespDto(document, getCategoryName(document.getCategoryId()));
+            return toRespDto(document, getCategoryName(document.getCategoryId()), processingJobService.getLatest(id));
         }
         String contentText = htmlToText(document.getContentHtml());
         if (contentText.isBlank()) {
@@ -192,7 +198,8 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
         documentMapper.updateKnowledgeDocument(document);
         saveChunks(document, combineText(document.getTitle(), contentText, ""));
         documentStorageService.deleteQuietly(oldBucket, oldPath);
-        return toRespDto(documentMapper.selectById(id), getCategoryName(document.getCategoryId()));
+        return toRespDto(documentMapper.selectById(id), getCategoryName(document.getCategoryId()),
+                processingJobService.getLatest(id));
     }
 
     @Override
@@ -429,7 +436,7 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
         return category == null ? "" : category.getName();
     }
 
-    private AiKnowledgeDocumentRespDto toRespDto(AiDocument document, String categoryName) {
+    private AiKnowledgeDocumentRespDto toRespDto(AiDocument document, String categoryName, DocumentParseJobRespDto parseJob) {
         AiKnowledgeDocumentRespDto dto = new AiKnowledgeDocumentRespDto();
         dto.setId(document.getId());
         dto.setCategoryId(document.getCategoryId());
@@ -441,6 +448,13 @@ public class AiKnowledgeDocumentServiceImpl implements AiKnowledgeDocumentServic
         dto.setParseStatus(document.getParseStatus());
         dto.setChunkCount(document.getChunkCount());
         dto.setErrorMessage(document.getErrorMessage());
+        if (parseJob != null) {
+            dto.setParseEngine(parseJob.getParseEngine());
+            dto.setParseJobStatus(parseJob.getStatus());
+            dto.setParseProgress(parseJob.getProgress());
+            dto.setParseRetryCount(parseJob.getRetryCount());
+            dto.setParseJobErrorMessage(parseJob.getErrorMessage());
+        }
         dto.setContentHtml(document.getContentHtml());
         dto.setPublishStatus(document.getPublishStatus());
         dto.setSourceType(document.getSourceType());
