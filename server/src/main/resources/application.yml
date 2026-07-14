@@ -1,13 +1,13 @@
 spring:
   datasource:
-    url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/lwh_system?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
-    username: ${MYSQL_USERNAME:root}
-    password: ${MYSQL_PASSWORD:}
+    url: ${MYSQL_URL:jdbc:mysql://10.211.55.6:3306/oa_system?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${MYSQL_USERNAME:admin}
+    password: ${MYSQL_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
   redis:
-    host: ${REDIS_HOST:127.0.0.1}
+    host: ${REDIS_HOST:10.211.55.6}
     port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:}
+    password: ${REDIS_PASSWORD:123456}
     database: 0
     timeout: 3000
   mvc:
@@ -46,9 +46,9 @@ spring:
           model: ${OLLAMA_EMBEDDING_MODEL:bge-m3}
     vectorstore:
       qdrant:
-        host: ${QDRANT_HOST:127.0.0.1}
+        host: ${QDRANT_HOST:10.211.55.6}
         port: ${QDRANT_GRPC_PORT:6334}
-        api-key: ${QDRANT_API_KEY:}
+        api-key: ${QDRANT_API_KEY:123456}
         collection-name: lwh_document_chunks
         initialize-schema: true
 
@@ -62,9 +62,9 @@ server:
   port: 8080
 
 onlyoffice:
-  document-server-url: ${ONLYOFFICE_DOCUMENT_SERVER_URL:http://127.0.0.1}
-  public-backend-url: ${ONLYOFFICE_PUBLIC_BACKEND_URL:http://127.0.0.1:8080}
-  jwt-secret: ${ONLYOFFICE_JWT_SECRET:}
+  document-server-url: ${ONLYOFFICE_DOCUMENT_SERVER_URL:http://10.211.55.6}
+  public-backend-url: ${ONLYOFFICE_PUBLIC_BACKEND_URL:http://10.211.55.2:8080}
+  jwt-secret: ${ONLYOFFICE_JWT_SECRET:0b31adc1d8c1e805f1407829559101cf243788b103798300992b175eb00b08d6}
 
 springdoc:
   api-docs:
@@ -73,9 +73,9 @@ springdoc:
     enabled: true
 
 minio:
-  endpoint: ${MINIO_ENDPOINT:http://127.0.0.1:9000}
-  access-key: ${MINIO_ACCESS_KEY:}
-  secret-key: ${MINIO_SECRET_KEY:}
+  endpoint: ${MINIO_ENDPOINT:http://10.211.55.6:9000}
+  access-key: ${MINIO_ACCESS_KEY:admin}
+  secret-key: ${MINIO_SECRET_KEY:wangjun=5201314}
   bucket-name: ${MINIO_BUCKET_NAME:oa-bucket}
 
 file:
@@ -92,7 +92,7 @@ ai:
       # 自动选择：现代 Office、PDF 和图片使用 MinerU，其余支持格式使用兼容解析。
       strategy: ${AI_DOCUMENT_PARSE_STRATEGY:AUTO}
       service-base-url: ${AI_SERVICE_BASE_URL:http://127.0.0.1:8090}
-      service-token: ${AI_SERVICE_TOKEN:}
+      service-token: ${AI_SERVICE_TOKEN:18acc77c588ec0f910eefa06499e738612af6d636aaf78377b71f8216ab9a1f9}
       scheduler-enabled: ${AI_DOCUMENT_SCHEDULER_ENABLED:true}
       request-timeout-seconds: ${AI_SERVICE_REQUEST_TIMEOUT_SECONDS:120}
       poll-batch-size: ${AI_DOCUMENT_POLL_BATCH_SIZE:20}
@@ -155,9 +155,9 @@ ai:
   search:
     elasticsearch:
       enabled: true
-      uris: ${ELASTICSEARCH_URIS:http://127.0.0.1:9200}
+      uris: ${ELASTICSEARCH_URIS:http://10.211.55.6:9200}
       username: ${ELASTICSEARCH_USERNAME:elastic}
-      password: ${ELASTICSEARCH_PASSWORD:}
+      password: ${ELASTICSEARCH_PASSWORD:j+WixZJMxOp/phxFbHAR12i74wXwYgVc}
       index-name: lwh_document_chunks_bm25
       top-k: 20
       title-boost: 2.0

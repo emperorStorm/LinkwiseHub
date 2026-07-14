@@ -36,7 +36,7 @@ AI_DOCUMENT_TASK_TIMEOUT_MINUTES=60
 AI_DOCUMENT_MAX_ATTEMPTS=3
 ```
 
-Python 环境变量见 `ai-service/.env.example`。当前 MinerU 地址为 `http://10.211.55.6:8000`，版本为 `3.4.4`，模型来源为 `local`。生产环境必须使用独立服务令牌、MinerU API token 和最小权限 MinIO 账号，不得把真实密钥写入仓库。
+Python 环境变量见 `ai-service/.env.example`。当前 MinerU 地址为 `http://10.211.55.6:8000`，版本为 `3.4.4`，模型来源为 `local`。开发环境已同步 OA 的 MinIO 连接信息；部署到其他环境时必须替换服务令牌、MinerU API token 和 MinIO 账号。
 
 `MINERU_IMAGE`、`CADDY_IMAGE` 和模型下载来源是虚拟机部署参数，AI 服务 Compose 只负责启动 Python 服务，不会覆盖虚拟机上的 MinerU 实例。
 

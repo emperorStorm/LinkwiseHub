@@ -17,7 +17,7 @@ AI、文档和外呼相关能力依赖外部服务。只验证基础管理时，
 
 ## 后端启动
 
-1. 创建数据库：
+1. 默认复用 OA 开发库 `oa_system`，LinkwiseHub 使用独立的 `lwh_` 表前缀；如需隔离数据库，可创建新库并通过 `MYSQL_URL` 覆盖：
 
 ```sql
 CREATE DATABASE IF NOT EXISTS lwh_system DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -65,7 +65,7 @@ http://10.211.55.6:8000/health
 
 Java 侧至少需要配置 `AI_SERVICE_TOKEN`，且必须与 `ai-service/.env` 一致。详细配置见 [AI 服务说明](ai-service.md)。
 
-后端不在仓库中保存真实凭据。启动前按实际环境注入以下核心变量：
+后端默认使用 OA 开发环境的中间件连接信息，部署到其他环境时可通过以下变量覆盖：
 
 ```text
 MYSQL_URL / MYSQL_USERNAME / MYSQL_PASSWORD

@@ -72,7 +72,7 @@ docker compose up --build
 
 - 不迁移厨房管理、菜谱管理、每日菜单、意见反馈和 `/api/suisui/action`。
 - 首版不包含移动端和桌面客户端。
-- 运行凭据和服务地址通过环境变量注入，仓库不保存生产密钥。
+- 开发环境的中间件默认连接信息已同步 OA 配置，仍可通过环境变量覆盖；外部模型密钥按环境变量注入。
 - MySQL、Redis、MinIO、OnlyOffice、Ollama、Qdrant、Elasticsearch、阿里云外呼等外部服务需要单独可用。
 - 新上传文档默认使用 `AUTO`：PDF、现代 Office 文档和图片使用 MinerU；TXT、Markdown 和旧版 Office 文档使用 Java 兼容解析。启用上传前需完成 AI 服务、MinIO 和共享服务令牌配置。
 
