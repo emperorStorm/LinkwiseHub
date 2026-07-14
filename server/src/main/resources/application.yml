@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: ${MYSQL_URL:jdbc:mysql://10.211.55.6:3306/oa_system?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    url: ${MYSQL_URL:jdbc:mysql://10.211.55.6:3306/lwh_system?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
     username: ${MYSQL_USERNAME:admin}
     password: ${MYSQL_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -63,7 +63,8 @@ server:
 
 onlyoffice:
   document-server-url: ${ONLYOFFICE_DOCUMENT_SERVER_URL:http://10.211.55.6}
-  public-backend-url: ${ONLYOFFICE_PUBLIC_BACKEND_URL:http://10.211.55.2:8080}
+  # 项目后端对 OnlyOffice 的可访问地址；本地部署时通过环境变量覆盖为实际网卡地址。
+  public-backend-url: ${ONLYOFFICE_PUBLIC_BACKEND_URL:http://127.0.0.1:8080}
   jwt-secret: ${ONLYOFFICE_JWT_SECRET:0b31adc1d8c1e805f1407829559101cf243788b103798300992b175eb00b08d6}
 
 springdoc:

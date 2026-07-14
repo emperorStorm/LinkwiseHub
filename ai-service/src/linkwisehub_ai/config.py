@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     mineru_model_download_source: str = "auto"
     mineru_request_timeout_seconds: float = 120
     mineru_result_timeout_seconds: float = 300
-    minio_endpoint: str = "127.0.0.1:9000"
+    minio_endpoint: str = "10.211.55.6:9000"
     minio_access_key: str = ""
     minio_secret_key: str = ""
     minio_secure: bool = False

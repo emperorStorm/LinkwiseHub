@@ -345,7 +345,7 @@ public class ElasticsearchDocumentSparseIndexServiceImpl implements DocumentSpar
 
     private String trimTrailingSlash(String uri) {
         if (!StringUtils.hasText(uri)) {
-            return "http://10.211.55.4:9200";
+            return "http://10.211.55.6:9200";
         }
         String value = uri.trim();
         return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;

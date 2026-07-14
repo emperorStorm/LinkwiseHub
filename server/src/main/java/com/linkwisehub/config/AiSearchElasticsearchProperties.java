@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "ai.search.elasticsearch")
 public class AiSearchElasticsearchProperties {
     private boolean enabled = true;
-    private String uris = "http://10.211.55.4:9200";
+    private String uris = "http://10.211.55.6:9200";
     private String username = "elastic";
     private String password = "";
     private String indexName = "lwh_document_chunks_bm25";
